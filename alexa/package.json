@@ -1,0 +1,17 @@
+{
+  "name": "drug-and-oath-alexa",
+  "version": "1.0.0",
+  "description": "Drug and Oath Alexa Skill Lambda",
+  "type": "module",
+  "main": "index.mjs",
+  "scripts": {
+    "install-prod": "npm install --omit=dev",
+    "zip": "zip -r skill.zip index.mjs dynamodb.mjs node_modules package.json"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0",
+    "ask-sdk-core": "^2.14.0",
+    "ask-sdk-model": "^1.86.0"
+  }
+}
