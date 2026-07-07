@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { format, addMonths, subMonths, getDaysInMonth, startOfMonth } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { TIMINGS, type Timing } from '@/lib/constants'
@@ -26,7 +27,9 @@ export default function MonthlyScreen() {
     setLoading(false)
   }, [currentDate, yearMonth])
 
-  useEffect(() => { fetchRecords() }, [fetchRecords])
+  useEffect(() => {
+    void Promise.resolve().then(fetchRecords)
+  }, [fetchRecords])
 
   // Build lookup: date → timing → record
   const grid = records.reduce<Record<string, Record<Timing, MedicationRecord>>>((acc, r) => {
@@ -63,9 +66,9 @@ export default function MonthlyScreen() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-indigo-700 text-white px-4 py-4 flex items-center justify-between sticky top-0 z-10 shadow-md">
         <h1 className="text-xl font-bold tracking-wide">Drug and Oath</h1>
-        <a href="/" className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors">
+        <Link href="/" className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors">
           メイン画面
-        </a>
+        </Link>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6">

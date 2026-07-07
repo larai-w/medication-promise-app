@@ -114,6 +114,20 @@
             "薬飲んだ"
           ]
         },
+        {
+          "name": "SetRemindersIntent",
+          "samples": [
+            "リマインダーをセットして",
+            "リマインダーを設定して",
+            "薬のリマインダーをセットして",
+            "薬のリマインダーを設定して",
+            "お薬のリマインダーをセットして",
+            "お薬のリマインダーを設定して",
+            "毎日のリマインダーを設定して",
+            "アラームを設定して",
+            "薬のアラームをセットして"
+          ]
+        },
         { "name": "AMAZON.HelpIntent", "samples": [] },
         { "name": "AMAZON.CancelIntent", "samples": [] },
         { "name": "AMAZON.StopIntent", "samples": [] },

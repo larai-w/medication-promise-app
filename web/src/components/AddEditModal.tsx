@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { TIMINGS, TIMING_DEFAULTS, type Timing } from '@/lib/constants'
 import type { MedicationRecord } from '@/types'
 
@@ -27,11 +27,12 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
   const [time, setTime] = useState(record?.time ?? TIMING_DEFAULTS[initialTiming])
   const [notes, setNotes] = useState(record?.notes ?? '')
 
-  useEffect(() => {
+  const handleTimingChange = (nextTiming: Timing) => {
+    setTiming(nextTiming)
     if (mode === 'add') {
-      setTime(TIMING_DEFAULTS[timing])
+      setTime(TIMING_DEFAULTS[nextTiming])
     }
-  }, [timing, mode])
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
@@ -56,7 +57,7 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
             {TIMINGS.map(t => (
               <button
                 key={t}
-                onClick={() => setTiming(t)}
+                onClick={() => handleTimingChange(t)}
                 className={`py-2.5 rounded-lg text-sm font-medium border-2 transition-colors ${
                   timing === t
                     ? 'border-indigo-500 bg-indigo-500 text-white'

@@ -49,7 +49,9 @@ export default function MainScreen() {
     setLoading(false)
   }, [fetchToday, fetchRecent])
 
-  useEffect(() => { fetchAll() }, [fetchAll])
+  useEffect(() => {
+    void Promise.resolve().then(fetchAll)
+  }, [fetchAll])
 
   const recordsByTiming = TIMINGS.reduce<Record<Timing, MedicationRecord | undefined>>(
     (acc, t) => { acc[t] = todayRecords.find(r => r.timing === t); return acc },

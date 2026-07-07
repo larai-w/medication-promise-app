@@ -1,4 +1,4 @@
-import { GetCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb'
+import { UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb'
 import { docClient, TABLE_NAME, USER_ID, makePK, decodeSK, encodeSK } from '@/lib/dynamodb'
 import type { DynamoRecord, MedicationRecord, UpdateRecordInput } from '@/types'
 

@@ -1,9 +1,12 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb'
-import { randomUUID } from 'crypto'
+import { recordMedication } from './dynamodb.mjs'
 
-const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME ?? 'DrugAndOathRecords'
-const USER_ID    = process.env.USER_ID ?? 'default-user'
+const REMINDER_SCHEDULE = [
+  { hour: 8,  min: 0,  text: '朝のお薬の時間です。レボドパを飲んでください。飲んだら「アレクサ、お薬の約束を開いて」と話しかけてください。' },
+  { hour: 12, min: 0,  text: '昼のお薬の時間です。レボドパを飲んでください。飲んだら「アレクサ、お薬の約束を開いて」と話しかけてください。' },
+  { hour: 18, min: 0,  text: '晩のお薬の時間です。レボドパを飲んでください。飲んだら「アレクサ、お薬の約束を開いて」と話しかけてください。' },
+  { hour: 20, min: 0,  text: '夜8時のお薬の時間です。レボドパを飲んでください。飲んだら「アレクサ、お薬の約束を開いて」と話しかけてください。' },
+  { hour: 21, min: 0,  text: '夜9時のお薬の時間です。今日も一日お疲れ様でした。レボドパを飲んでください。飲んだら「アレクサ、お薬の約束を開いて」と話しかけてください。' },
+]
 
 // ★ interaction-model.json のインテント名と完全一致させること
 const INTENT_TO_TIMING = {
@@ -19,36 +22,59 @@ const NIGHT9_MESSAGE =
   '看護師さんを呼ばずにこのまま夜おやすみできますよ。' +
   '安心しておやすみくださいね。'
 
-const docClient = DynamoDBDocumentClient.from(
-  new DynamoDBClient({}),
-  { marshallOptions: { removeUndefinedValues: true } }
-)
-
-function nowJST() {
-  const jst = new Date(Date.now() + 9 * 60 * 60 * 1000)
-  return {
-    date: jst.toISOString().slice(0, 10),
-    time: jst.toISOString().slice(11, 16),
-    iso:  new Date().toISOString(),
+async function setAllReminders(apiEndpoint, apiAccessToken) {
+  const headers = {
+    'Authorization': `Bearer ${apiAccessToken}`,
+    'Content-Type': 'application/json',
   }
-}
 
-async function recordMedication(timing) {
-  const { date, time, iso } = nowJST()
-  const uuid = randomUUID()
-  await docClient.send(new PutCommand({
-    TableName: TABLE_NAME,
-    Item: {
-      PK:        `USER#${USER_ID}`,
-      SK:        `RECORD#${date}T${time}:00#${uuid}`,
-      userId:    USER_ID,
-      date,
-      time,
-      timing,
-      source:    'alexa',
-      createdAt: iso,
-    },
-  }))
+  // 既存リマインダーを取得して全削除（重複防止）
+  const listRes = await fetch(`${apiEndpoint}/v1/alerts/reminders`, { headers })
+  if (listRes.status === 401 || listRes.status === 403) {
+    return { permissionDenied: true }
+  }
+  if (listRes.ok) {
+    const { alerts = [] } = await listRes.json()
+    for (const alert of alerts) {
+      await fetch(`${apiEndpoint}/v1/alerts/reminders/${alert.alertToken}`, {
+        method: 'DELETE',
+        headers,
+      })
+    }
+  }
+
+  // 5つのリマインダーを作成
+  const todayJST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  for (const { hour, min, text } of REMINDER_SCHEDULE) {
+    const hh = String(hour).padStart(2, '0')
+    const mm = String(min).padStart(2, '0')
+    const body = {
+      requestTime: new Date().toISOString(),
+      trigger: {
+        type: 'SCHEDULED_ABSOLUTE',
+        scheduledTime: `${todayJST}T${hh}:${mm}:00.000`,
+        timeZoneId: 'Asia/Tokyo',
+        recurrence: { freq: 'DAILY' },
+      },
+      alertInfo: {
+        spokenInfo: {
+          content: [{ locale: 'ja-JP', text }],
+        },
+      },
+      pushNotification: { status: 'ENABLED' },
+    }
+    const res = await fetch(`${apiEndpoint}/v1/alerts/reminders`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) {
+      const errBody = await res.text()
+      throw new Error(`Reminder API ${res.status}: ${errBody}`)
+    }
+  }
+
+  return { success: true }
 }
 
 function respond(text, shouldEndSession = true) {
@@ -93,6 +119,34 @@ export const handler = async (event) => {
       }
       const speech = timing === '夜9時' ? NIGHT9_MESSAGE : `${timing}の服薬を記録しました。`
       return respond(speech)
+    }
+
+    // リマインダーセット
+    if (intentName === 'SetRemindersIntent') {
+      const { apiEndpoint, apiAccessToken } = event.context.System
+      let result
+      try {
+        result = await setAllReminders(apiEndpoint, apiAccessToken)
+      } catch (err) {
+        console.error('Reminder error:', err)
+        return respond('申し訳ありません、リマインダーの設定中にエラーが発生しました。もう一度お試しください。')
+      }
+      if (result.permissionDenied) {
+        return {
+          version: '1.0',
+          response: {
+            outputSpeech: {
+              type: 'PlainText',
+              text: 'リマインダーを設定するには権限が必要です。Alexaアプリを開いて「お薬の約束」スキルのリマインダー権限を許可してください。',
+            },
+            card: {
+              type: 'AskForPermissionsConsent',
+              permissions: ['alexa::alerts:reminders:skill:readwrite'],
+            },
+          },
+        }
+      }
+      return respond('5つの薬のリマインダーを設定しました。朝8時、昼12時、晩18時、夜8時、夜9時に呼びかけます。')
     }
 
     // タイミング不明フォールバック
