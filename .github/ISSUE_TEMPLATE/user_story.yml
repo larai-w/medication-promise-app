@@ -1,0 +1,61 @@
+name: User story
+description: Track product work in GitHub Issues and Projects
+title: "[Story] "
+labels:
+  - story
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: User story
+      description: Write from the user's perspective.
+      placeholder: As a caregiver, I want to review monthly medication history so that I can share accurate records with the clinic.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why this matters and what problem it solves.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Use checkboxes so progress can be tracked.
+      value: |
+        - [ ] 
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - web
+        - alexa
+        - data
+        - ci-cd
+        - docs
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0
+        - P1
+        - P2
+        - P3
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Links, screenshots, constraints, or implementation notes.
+
