@@ -84,7 +84,7 @@ export default function MedPdfDocument({ records, yearMonth, daysInMonth }: Prop
               ))}
               <View style={s.notesCell}>
                 <Text style={s.cellText}>
-                  {TIMINGS.map(t => data[t]?.notes).filter(Boolean).join(' / ')}
+                  {TIMINGS.flatMap(t => data[t]?.notes ? [`${t}: ${data[t].notes}`] : []).join(' / ')}
                 </Text>
               </View>
             </View>
