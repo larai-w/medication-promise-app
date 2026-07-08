@@ -481,7 +481,7 @@ Phase 3 (〜2027-01) → スケール対応・マルチユーザー化
 
 | タスク | 優先度 | サイズ |
 |--------|--------|--------|
-| 認証基盤（NextAuth.js または Cognito） | P1 | XL |
+| 認証基盤（AWS Cognito） | P1 | XL |
 | 複数患者管理（Story 4-1） | P1 | XL |
 | 施設向けダッシュボード（一覧・アラート） | P2 | L |
 | CSV エクスポート | P2 | S |
@@ -499,9 +499,9 @@ Phase 3 (〜2027-01) → スケール対応・マルチユーザー化
 データベース:   AWS DynamoDB
 音声:          Alexa Skills Kit (ASK) + AWS Lambda
 PDF:           @react-pdf/renderer
-認証（将来）:  NextAuth.js または AWS Cognito
-ホスティング:  Vercel（Web）+ AWS Lambda（Alexa）
-CI/CD:         GitHub Actions
+認証（将来）:  AWS Cognito
+ホスティング:  AWS Amplify（Web）+ AWS Lambda（Alexa）
+CI/CD:         GitHub Actions + AWS Amplify ビルド
 ```
 
 ---
@@ -601,33 +601,38 @@ CI/CD:         GitHub Actions
 
 - **開発体制**: 個人開発者 or 小規模チーム（1〜2名）
 - **技術スタック**: 現状のまま（Next.js + DynamoDB + Alexa）
-- **ホスティング**: Vercel（Web）+ AWS Lambda（Alexa）
+- **ホスティング**: AWS Amplify（Web）+ AWS Lambda（Alexa）← AWS 統一
 - **為替レート**: 1USD = 150JPY
 
 ---
 
 ### インフラ費用（月額ランニングコスト）
 
-#### 初期〜個人利用フェーズ（〜100ユーザー）
+#### 初期〜30ユーザーフェーズ（AWS 無料枠内）
 
 | 項目 | サービス | 月額 |
 |------|---------|------|
-| Web ホスティング | Vercel Hobby（無料） | ¥0 |
-| DynamoDB | AWS Free Tier 内（25GB・25RCU・25WCU） | ¥0〜¥500 |
+| Web ホスティング | AWS Amplify 無料枠（ビルド1000分・転送15GB・SSR50万req） | ¥0 |
+| DynamoDB | AWS Free Tier 内（25GB・25RCU・25WCU） | ¥0 |
 | Lambda（Alexa）| AWS Free Tier 内（100万リクエスト/月） | ¥0 |
-| ドメイン | AWS Route 53 or お名前.com | ¥150/月 |
-| **合計** | | **¥150〜¥650/月** |
+| CloudFront | Amplify に内蔵（追加費用なし） | ¥0 |
+| ドメイン | AWS Route 53 | ¥150/月 |
+| **合計** | | **¥0〜¥150/月** |
+
+> Vercel と違い、AWS Amplify は IAM ロールで DynamoDB に接続するためアクセスキー管理が不要
 
 #### 成長フェーズ（〜5,000ユーザー）
 
 | 項目 | サービス | 月額 |
 |------|---------|------|
-| Web ホスティング | Vercel Pro | ¥3,000 |
+| Web ホスティング | AWS Amplify 従量課金 | ¥300〜¥1,500 |
 | DynamoDB | オンデマンドモード（推定） | ¥2,000〜¥5,000 |
+| Cognito | 月間アクティブユーザー5万人まで無料 | ¥0 |
 | Lambda（Alexa） | AWS Lambda（無料枠超過分） | ¥500 |
 | CloudWatch Logs | ログ監視 | ¥300 |
-| ドメイン・SSL | | ¥150 |
-| **合計** | | **約 ¥6,000〜¥9,000/月** |
+| SES（メール通知） | 1000通/月まで無料 | ¥0〜¥150 |
+| ドメイン・SSL | Route 53（SSL は Amplify に内蔵） | ¥150 |
+| **合計** | | **約 ¥3,250〜¥7,600/月** |
 
 ---
 
