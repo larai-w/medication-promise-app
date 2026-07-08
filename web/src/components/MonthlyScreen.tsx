@@ -159,13 +159,24 @@ export default function MonthlyScreen() {
 
         {/* Summary */}
         {!loading && (
-          <div className="mt-4 flex gap-4 text-sm text-gray-500">
+          <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-500">
             <span>
               服薬回数: <strong className="text-gray-800">{records.length}回</strong>
             </span>
             <span>
               服薬日数: <strong className="text-gray-800">
                 {new Set(records.map(r => r.date)).size}日
+              </strong>
+            </span>
+            <span>
+              完了率: <strong className={
+                records.length / (daysInMonth * 5) >= 0.8
+                  ? 'text-green-600'
+                  : records.length / (daysInMonth * 5) >= 0.5
+                    ? 'text-yellow-600'
+                    : 'text-red-500'
+              }>
+                {Math.round(records.length / (daysInMonth * 5) * 100)}%
               </strong>
             </span>
           </div>
