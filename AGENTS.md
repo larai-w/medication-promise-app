@@ -4,6 +4,11 @@ Start every session by reading:
 
 - `docs/PROJECT_HANDOFF.md`
 
+Orchestration: the main session (Fable) plans strategy and tasks, then delegates
+implementation to the subagents defined in `.claude/agents/` — `implementer`
+(Sonnet, routine work) and `senior-implementer` (Opus, complex/high-risk work).
+See `docs/AGENT_WORKFLOW.md` for the full workflow.
+
 This repository contains:
 
 - `web/`: Next.js medication tracking app.
