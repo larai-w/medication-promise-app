@@ -1,4 +1,4 @@
-name: CI
+name: CI / CD
 
 on:
   pull_request:
@@ -10,6 +10,9 @@ permissions:
   contents: read
 
 jobs:
+  # ────────────────────────────────────────────
+  # CI: Web lint & build
+  # ────────────────────────────────────────────
   web:
     name: Web lint and build
     runs-on: ubuntu-latest
@@ -17,25 +20,21 @@ jobs:
       run:
         working-directory: web
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Build
-        run: npm run build
-
+  # ────────────────────────────────────────────
+  # CI: Alexa syntax check & zip
+  # ────────────────────────────────────────────
   alexa:
     name: Alexa package check
     runs-on: ubuntu-latest
@@ -43,21 +42,16 @@ jobs:
       run:
         working-directory: alexa
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: alexa/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Syntax check
-        run: node --check index.mjs
+      - run: npm ci
+      - run: node --check index.mjs
 
       - name: Build Lambda zip
         run: npm run zip
@@ -69,3 +63,43 @@ jobs:
           path: alexa/skill.zip
           if-no-files-found: error
 
+  # ────────────────────────────────────────────
+  # CD: Deploy Alexa Lambda  (main push only)
+  #
+  # 必要な GitHub Secrets（HUMAN_TASKS.md H-08 を参照）:
+  #   AWS_ACCESS_KEY_ID
+  #   AWS_SECRET_ACCESS_KEY
+  #   AWS_REGION
+  #   LAMBDA_FUNCTION_NAME
+  # ────────────────────────────────────────────
+  deploy-lambda:
+    name: Deploy Alexa Lambda
+    needs: alexa
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Download Lambda artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: alexa-skill-zip
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Update Lambda function code
+        run: |
+          aws lambda update-function-code \
+            --function-name "${{ secrets.LAMBDA_FUNCTION_NAME }}" \
+            --zip-file fileb://skill.zip
+
+  # ────────────────────────────────────────────
+  # CD: Web は Amplify が GitHub 連携で自動デプロイ
+  #     （GitHub Actions のジョブは不要）
+  #     Amplify コンソールで GitHub リポジトリを接続すると
+  #     main へのプッシュで自動ビルド＆デプロイが走る
+  # ────────────────────────────────────────────
