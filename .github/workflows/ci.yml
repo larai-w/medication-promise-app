@@ -77,14 +77,28 @@ jobs:
     needs: alexa
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
-    environment: production
     steps:
+      - name: Check AWS secrets
+        id: check
+        env:
+          AWS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          LAMBDA_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+        run: |
+          if [ -z "$AWS_KEY" ] || [ -z "$LAMBDA_NAME" ]; then
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "::warning::AWS Secrets not set — skipping Lambda deploy. See HUMAN_TASKS.md H-08."
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Download Lambda artifact
+        if: steps.check.outputs.configured == 'true'
         uses: actions/download-artifact@v4
         with:
           name: alexa-skill-zip
 
       - name: Configure AWS credentials
+        if: steps.check.outputs.configured == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -92,6 +106,7 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Update Lambda function code
+        if: steps.check.outputs.configured == 'true'
         run: |
           aws lambda update-function-code \
             --function-name "${{ secrets.LAMBDA_FUNCTION_NAME }}" \
