@@ -1,6 +1,6 @@
 # 人間がやるタスクリスト — Drug and Oath
 
-最終更新: 2026-07-12
+最終更新: 2026-07-12（最終自動化後）
 
 Fable / Sonnet / Opus が実行できず、**人間のアカウントアクセスが必要なタスク**をまとめています。
 優先度順に並んでいます。上から順にやればOKです。
@@ -17,25 +17,13 @@ Fable / Sonnet / Opus が実行できず、**人間のアカウントアクセ�
 
 ## PHASE 0 — 今すぐ（合計 約60〜75分）
 
-### H-01 ⬜ GitHub に main ブランチをプッシュ
-**⏱ 2分** | 優先度: P0
-
-```bash
-cd drug-and-oath
-git push origin main
-```
-
-**これをしないと CI が一度も動かない。** 現在6コミット分の変更（Alexaリマインダー・UX修正・CI設定・エージェント定義など）が未プッシュ。
+### H-01 ✅ GitHub に main ブランチをプッシュ
+**⏱ 2分** | 優先度: P0 | **完了済み**
 
 ---
 
-### H-02 ⬜ Alexa リマインダー権限をオンにする
-**⏱ 3分** | 優先度: P0
-
-1. Alexa Developer Console → スキル「お薬の約束」→ ビルド → アクセス権限
-2. 「リマインダー」のトグルをオン
-
-これをしないと「リマインダーを設定して」が常に権限エラーになる。
+### H-02 ✅ Alexa リマインダー権限をオンにする
+**⏱ 3分** | 優先度: P0 | **完了済み（Echo からリマインダーが鳴ることで確認）**
 
 ---
 
@@ -65,25 +53,22 @@ AWS Lambda コンソール → 対象の関数 → 「コードをアップロ�
 
 ---
 
-### H-05 ⬜ AWS Amplify で Web をデプロイ
-**⏱ 20〜30分**（初回ビルド待ちを含む） | 優先度: P0
+### H-05 🔄 AWS Amplify — 設定修正済み、ビルド待ち
+**⏱ 5分（確認のみ）** | 優先度: P0
 
-詳細手順は `docs/NOTE_FOR_HUMAN.md` の「AWS Amplify で Web をデプロイする」を参照。
+Fable が以下を自動化済み:
+- ✅ Amplify アプリ `medication-promise-app` を発見 (us-east-1, アプリID: `d3tr8elpw0dz9m`)
+- ✅ プラットフォームを `WEB` → `WEB_COMPUTE`（SSR）に変更
+- ✅ 環境変数 `DYNAMODB_REGION=ap-northeast-1`, `DYNAMODB_TABLE_NAME`, `USER_ID` を設定
+- ✅ リビルドをトリガー（Job #5）
 
-| ステップ | 作業 | 時間 |
-|---------|------|------|
-| Step 1 | Amplify コンソールを開く | 1分 |
-| Step 2 | GitHub リポジトリ（`larai-w/medication-promise-app`）を接続 | 3分 |
-| Step 3 | ビルド設定（`appRoot: web`）を確認 | 3分 |
-| Step 4 | 環境変数 3つを設定（AWS_REGION / DYNAMODB_TABLE_NAME / USER_ID） | 2分 |
-| Step 5 | IAM サービスロールに DynamoDB 権限を付与 | 5分 |
-| Step 6 | 「保存してデプロイ」→ 完了待ち | 5〜10分 |
+**あなたがやること**: Amplify コンソールでビルドが成功したか確認するだけ。
+URL: `https://main.d3tr8elpw0dz9m.amplifyapp.com`
 
-> **重要**: `AWS_ACCESS_KEY_ID` と `AWS_SECRET_ACCESS_KEY` は**入力しない**。IAM ロールで代替するので不要。
+> **注意**: IAM ロール `amplify-medication-app-role` に DynamoDB 読み書き権限があるか確認してください。なければ:
+> IAM → Roles → `amplify-medication-app-role` → Add permissions → `AmazonDynamoDBFullAccess`
 
-**デプロイ後に届く URL**（例: `https://main.xxxxxx.amplifyapp.com`）をメモしておく。
-
-**veai.jp への接続は後回しでOK**。まず `amplifyapp.com` の URL で動作確認してから、必要であればサブドメインを設定する（H-10）。
+**veai.jp との接続**: H-09 を参照（後回しでOK）。
 
 ---
 
@@ -122,37 +107,16 @@ Branch name pattern: main
 
 ---
 
-### H-08 ⬜ GitHub Secrets に AWS 認証情報を設定
-**⏱ 15〜20分**（IAM ユーザー作成を含む） | 優先度: P1
+### H-08 ✅ GitHub Secrets に AWS 認証情報を設定
+**⏱ 15〜20分** | 優先度: P1 | **Fable が自動化済み**
 
-Lambda の CD 自動化（Fable に頼む予定の T16）に必要。
+Fable が自動化済み:
+- ✅ IAM ユーザー `github-actions-drug-and-oath` 作成済み
+- ✅ IAM ポリシーを `DrugAndOathFunction`（us-east-1）に修正
+- ✅ GitHub Secrets 4つ設定済み:
+  - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION=us-east-1`, `LAMBDA_FUNCTION_NAME=DrugAndOathFunction`
 
-**8-1. IAM ユーザーを作成（8分）**
-1. IAM コンソール → ユーザー → 「ユーザーを作成」
-2. 名前: `github-actions-drug-and-oath`
-3. 「アクセスキー」→「サードパーティサービス」を選択して発行
-4. 権限: 以下の最小権限ポリシーを作成してアタッチ
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [{
-    "Effect": "Allow",
-    "Action": "lambda:UpdateFunctionCode",
-    "Resource": "arn:aws:lambda:ap-northeast-1:*:function:<Lambda関数名>"
-  }]
-}
-```
-
-**8-2. GitHub に登録（5分）**
-GitHub → Settings → Secrets and variables → Actions → New repository secret:
-
-| シークレット名 | 値 |
-|--------------|-----|
-| `AWS_ACCESS_KEY_ID` | 発行したアクセスキー |
-| `AWS_SECRET_ACCESS_KEY` | 発行したシークレットキー |
-| `AWS_REGION` | `ap-northeast-1` |
-| `LAMBDA_FUNCTION_NAME` | Lambda 関数名 |
+次の `git push` から Lambda の CD が自動で動きます。
 
 ---
 
