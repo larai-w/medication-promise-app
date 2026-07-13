@@ -53,23 +53,21 @@ AWS Lambda コンソール → 対象の関数 → 「コードをアップロ�
 
 ---
 
-### H-05 🔄 Web を OpenNext + SST で AWS にデプロイ
-**⏱ 5分（確認のみ）** | 優先度: P0
+### H-05 ✅ Web を OpenNext + SST で AWS にデプロイ（Fable が完了）
+**優先度: P0** | **デプロイ済み・動作検証済み**
 
 **Amplify は Next.js 16 SSR 非対応のため中止。OpenNext + SST に切り替え。**
 詳細は `docs/WEB_HOSTING_OPENNEXT.md` を参照。
 
-Fable が自動化済み:
-- ✅ `web/open-next.config.ts` / `web/sst.config.ts` を作成
-- ✅ OpenNext ビルド検証成功（Next.js 16.2.9 対応確認）
-- ✅ DynamoDB 最小権限をサーバー Lambda に付与
-- ✅ `npm run deploy`（= `sst deploy --stage production`）でデプロイ実行
+- ✅ `web/open-next.config.ts` / `web/sst.config.ts` 作成
+- ✅ AWS へデプロイ完了（CloudFront + Lambda + S3、ap-northeast-1）
+- ✅ DynamoDB（us-east-1）へクロスリージョン接続・最小権限付与
+- ✅ 動作検証済み: GET（17件取得）・POST（記録 201）・DELETE（削除 200）すべて成功
 
-**あなたがやること**: デプロイ完了後に表示される CloudFront の URL で動作確認するだけ。
-再デプロイは `cd web && npm run deploy` のみ。
+**本番 URL（現時点）**: `https://dhr30db6tf09e.cloudfront.net`
+**再デプロイ**: `cd web && npm run deploy` だけ
 
-**旧 Amplify アプリ** `d3tr8elpw0dz9m` はプラットフォームを `WEB` に戻し、
-自動ビルドを停止済み（不要になったら削除可）。
+**旧 Amplify アプリ** `d3tr8elpw0dz9m` は WEB プラットフォームに戻し自動ビルド停止済み（不要なら削除可）。
 
 ---
 
