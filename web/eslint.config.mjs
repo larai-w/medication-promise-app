@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // OpenNext / SST 由来のビルド成果物・設定は Next.js の lint 対象外
+    ".open-next/**",
+    ".sst/**",
+    "sst-env.d.ts",
+    "sst.config.ts",
+    "open-next.config.ts",
   ]),
 ]);
 

@@ -17,6 +17,11 @@
 /.next/
 /out/
 
+# OpenNext / SST
+/.open-next/
+/.sst/
+sst-env.d.ts
+
 # production
 /build
 
