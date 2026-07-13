@@ -53,22 +53,23 @@ AWS Lambda コンソール → 対象の関数 → 「コードをアップロ�
 
 ---
 
-### H-05 🔄 AWS Amplify — 設定修正済み、ビルド待ち
+### H-05 🔄 Web を OpenNext + SST で AWS にデプロイ
 **⏱ 5分（確認のみ）** | 優先度: P0
 
-Fable が以下を自動化済み:
-- ✅ Amplify アプリ `medication-promise-app` を発見 (us-east-1, アプリID: `d3tr8elpw0dz9m`)
-- ✅ プラットフォームを `WEB` → `WEB_COMPUTE`（SSR）に変更
-- ✅ 環境変数 `DYNAMODB_REGION=ap-northeast-1`, `DYNAMODB_TABLE_NAME`, `USER_ID` を設定
-- ✅ リビルドをトリガー（Job #5）
+**Amplify は Next.js 16 SSR 非対応のため中止。OpenNext + SST に切り替え。**
+詳細は `docs/WEB_HOSTING_OPENNEXT.md` を参照。
 
-**あなたがやること**: Amplify コンソールでビルドが成功したか確認するだけ。
-URL: `https://main.d3tr8elpw0dz9m.amplifyapp.com`
+Fable が自動化済み:
+- ✅ `web/open-next.config.ts` / `web/sst.config.ts` を作成
+- ✅ OpenNext ビルド検証成功（Next.js 16.2.9 対応確認）
+- ✅ DynamoDB 最小権限をサーバー Lambda に付与
+- ✅ `npm run deploy`（= `sst deploy --stage production`）でデプロイ実行
 
-> **注意**: IAM ロール `amplify-medication-app-role` に DynamoDB 読み書き権限があるか確認してください。なければ:
-> IAM → Roles → `amplify-medication-app-role` → Add permissions → `AmazonDynamoDBFullAccess`
+**あなたがやること**: デプロイ完了後に表示される CloudFront の URL で動作確認するだけ。
+再デプロイは `cd web && npm run deploy` のみ。
 
-**veai.jp との接続**: H-09 を参照（後回しでOK）。
+**旧 Amplify アプリ** `d3tr8elpw0dz9m` はプラットフォームを `WEB` に戻し、
+自動ビルドを停止済み（不要になったら削除可）。
 
 ---
 

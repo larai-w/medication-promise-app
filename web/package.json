@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy": "sst deploy --stage production",
+    "sst:dev": "sst dev",
+    "sst:remove": "sst remove --stage production"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1072.0",
@@ -19,6 +22,7 @@
     "uuid": "^14.0.0"
   },
   "devDependencies": {
+    "@opennextjs/aws": "^4.0.3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -26,6 +30,7 @@
     "@types/uuid": "^10.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "sst": "^4.17.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
