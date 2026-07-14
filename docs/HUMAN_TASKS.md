@@ -1,9 +1,33 @@
 # 人間がやるタスクリスト — Drug and Oath
 
-最終更新: 2026-07-12（最終自動化後）
+最終更新: 2026-07-13（OpenNext+SST 移行後）
 
 Fable / Sonnet / Opus が実行できず、**人間のアカウントアクセスが必要なタスク**をまとめています。
 優先度順に並んでいます。上から順にやればOKです。
+
+> このセッションの詳細な作業ログ・引き継ぎは `docs/SESSION_NOTE_2026-07-13.md` を参照。
+
+---
+
+## 🔥 いま人間が判断すべきこと（最優先）
+
+### 動作確認: 本番 Web を実際に触る（10分）
+👉 **https://dhr30db6tf09e.cloudfront.net** をスマホ／PC で開く。
+記録のワンタップ・削除モーダル・月次 PDF・完了率% を確認（合格基準は下の H-06 表）。
+
+### 独自ドメインをどうするか決める（判断のみ・実装は Codex/Fable に依頼可）
+Fable のおすすめは **`kusuri.veai.jp`（サブドメイン）**。理由:
+- SST に1行足すだけで済む（`basePath` 改修不要・本番 veai.jp CloudFront に触らず安全）
+- 短くて覚えやすく「お薬の約束」の実体に合う
+
+| 候補 | 方式 | 手間 | 備考 |
+|------|------|------|------|
+| **`kusuri.veai.jp`** ⭐ | サブドメイン | 小 | SST の `domain` に追記 → `npm run deploy` |
+| `veai.jp/kusuri` | パス | 中 | `basePath:'/kusuri'`＋既存 CloudFront にビヘイビア追加（本番に手を入れる）|
+| `veai.jp/drug-and-oath` | パス | 中 | 長くて非推奨。改修量は上と同じ |
+
+決めたら実装は Codex に「`kusuri.veai.jp` を SST で割り当てて」と依頼すればOK
+（手順は `docs/SESSION_NOTE_2026-07-13.md` の T-A / `docs/WEB_HOSTING_OPENNEXT.md`）。
 
 ---
 

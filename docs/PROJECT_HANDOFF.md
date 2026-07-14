@@ -1,6 +1,16 @@
 # Project Handoff: Drug and Oath
 
-Last updated: 2026-07-06
+Last updated: 2026-07-13
+
+> **最新の作業ログは `docs/SESSION_NOTE_2026-07-13.md` を先に読むこと。**
+> このセッションで Web ホスティングを Amplify → **OpenNext + SST** に移行し、AWS 本番稼働済み。
+>
+> **重要な前提（間違えやすい）**
+> - AWS リソースは **us-east-1**（DynamoDB `DrugAndOathRecords`・Alexa Lambda `DrugAndOathFunction`・
+>   veai.jp インフラすべて）。東京 ap-northeast-1 ではない。AWS アカウント `339712703146`。
+> - Web の本番 URL（独自ドメイン未割当）: https://dhr30db6tf09e.cloudfront.net
+> - Web デプロイ = `cd web && npm run deploy`（OpenNext+SST）。Amplify はもう使わない。
+> - Alexa スキルは2つ: 「お薬の約束」=本体（`alexa/`）、「看護師メッセージ」=別物（`veai-line-message` リポジトリ）。
 
 ## Current Status
 
