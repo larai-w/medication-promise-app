@@ -1,12 +1,5 @@
 import { recordMedication } from './dynamodb.mjs'
-
-const REMINDER_SCHEDULE = [
-  { hour: 8,  min: 0,  text: '朝のお薬の時間です。レボドパを飲んでください。飲んだら「アレクサ、お薬の約束を開いて」と話しかけてください。' },
-  { hour: 12, min: 0,  text: '昼のお薬の時間です。レボドパを飲んでください。飲んだら「アレクサ、お薬の約束を開いて」と話しかけてください。' },
-  { hour: 18, min: 0,  text: '晩のお薬の時間です。レボドパを飲んでください。飲んだら「アレクサ、お薬の約束を開いて」と話しかけてください。' },
-  { hour: 20, min: 0,  text: '夜8時のお薬の時間です。レボドパを飲んでください。飲んだら「アレクサ、お薬の約束を開いて」と話しかけてください。' },
-  { hour: 21, min: 0,  text: '夜9時のお薬の時間です。今日も一日お疲れ様でした。レボドパを飲んでください。飲んだら「アレクサ、お薬の約束を開いて」と話しかけてください。' },
-]
+import { buildReminderText, formatReminderSummary, getReminderSchedule } from './config.mjs'
 
 // ★ interaction-model.json のインテント名と完全一致させること
 const INTENT_TO_TIMING = {
@@ -18,34 +11,37 @@ const INTENT_TO_TIMING = {
 }
 
 const NIGHT9_MESSAGE =
-  '夜9時の薬ですね。今日も問題がなければ、' +
-  '看護師さんを呼ばずにこのまま夜おやすみできますよ。' +
-  '安心しておやすみくださいね。'
+  '夜9時の服薬を記録しました。今日も一日お疲れさまでした。どうぞゆっくりお休みください。'
 
-async function setAllReminders(apiEndpoint, apiAccessToken) {
+export async function setAllReminders(apiEndpoint, apiAccessToken, schedule, medicationName, fetchFn = fetch) {
   const headers = {
     'Authorization': `Bearer ${apiAccessToken}`,
     'Content-Type': 'application/json',
   }
 
   // 既存リマインダーを取得して全削除（重複防止）
-  const listRes = await fetch(`${apiEndpoint}/v1/alerts/reminders`, { headers })
+  const listRes = await fetchFn(`${apiEndpoint}/v1/alerts/reminders`, { headers })
   if (listRes.status === 401 || listRes.status === 403) {
     return { permissionDenied: true }
   }
-  if (listRes.ok) {
-    const { alerts = [] } = await listRes.json()
-    for (const alert of alerts) {
-      await fetch(`${apiEndpoint}/v1/alerts/reminders/${alert.alertToken}`, {
-        method: 'DELETE',
-        headers,
-      })
+  if (!listRes.ok) {
+    throw new Error(`Reminder list API ${listRes.status}`)
+  }
+
+  const { alerts = [] } = await listRes.json()
+  for (const alert of alerts) {
+    const deleteRes = await fetchFn(`${apiEndpoint}/v1/alerts/reminders/${alert.alertToken}`, {
+      method: 'DELETE',
+      headers,
+    })
+    if (!deleteRes.ok) {
+      throw new Error(`Reminder delete API ${deleteRes.status}`)
     }
   }
 
-  // 5つのリマインダーを作成
+  // 設定されたリマインダーを作成
   const todayJST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)
-  for (const { hour, min, text } of REMINDER_SCHEDULE) {
+  for (const { timing, hour, min } of schedule) {
     const hh = String(hour).padStart(2, '0')
     const mm = String(min).padStart(2, '0')
     const body = {
@@ -58,12 +54,12 @@ async function setAllReminders(apiEndpoint, apiAccessToken) {
       },
       alertInfo: {
         spokenInfo: {
-          content: [{ locale: 'ja-JP', text }],
+          content: [{ locale: 'ja-JP', text: buildReminderText(timing, medicationName) }],
         },
       },
       pushNotification: { status: 'ENABLED' },
     }
-    const res = await fetch(`${apiEndpoint}/v1/alerts/reminders`, {
+    const res = await fetchFn(`${apiEndpoint}/v1/alerts/reminders`, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
@@ -93,7 +89,8 @@ function respond(text, shouldEndSession = true) {
   }
 }
 
-export const handler = async (event) => {
+export function createHandler({ recordMedicationFn = recordMedication, fetchFn = fetch, env = process.env } = {}) {
+  return async (event) => {
   const requestType = event.request.type
   console.log('RequestType:', requestType)
 
@@ -112,7 +109,7 @@ export const handler = async (event) => {
     const timing = INTENT_TO_TIMING[intentName]
     if (timing) {
       try {
-        await recordMedication(timing)
+        await recordMedicationFn(timing)
       } catch (err) {
         console.error('DynamoDB error:', err)
         return respond('申し訳ありません、記録中にエラーが発生しました。もう一度お試しください。')
@@ -125,8 +122,16 @@ export const handler = async (event) => {
     if (intentName === 'SetRemindersIntent') {
       const { apiEndpoint, apiAccessToken } = event.context.System
       let result
+      let schedule
       try {
-        result = await setAllReminders(apiEndpoint, apiAccessToken)
+        schedule = getReminderSchedule(env)
+        result = await setAllReminders(
+          apiEndpoint,
+          apiAccessToken,
+          schedule,
+          env.MEDICATION_NAME ?? '',
+          fetchFn
+        )
       } catch (err) {
         console.error('Reminder error:', err)
         return respond('申し訳ありません、リマインダーの設定中にエラーが発生しました。もう一度お試しください。')
@@ -146,7 +151,7 @@ export const handler = async (event) => {
           },
         }
       }
-      return respond('5つの薬のリマインダーを設定しました。朝8時、昼12時、晩18時、夜8時、夜9時に呼びかけます。')
+      return respond(`${schedule.length}つの服薬リマインダーを設定しました。${formatReminderSummary(schedule)}に呼びかけます。`)
     }
 
     // タイミング不明フォールバック
@@ -175,4 +180,7 @@ export const handler = async (event) => {
   }
 
   return respond('申し訳ありません。もう一度お試しください。')
+  }
 }
+
+export const handler = createHandler()

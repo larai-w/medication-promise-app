@@ -1,7 +1,9 @@
 import { QueryCommand, PutCommand } from '@aws-sdk/lib-dynamodb'
 import { randomUUID } from 'crypto'
 import { docClient, TABLE_NAME, USER_ID, makePK, makeSK, encodeSK } from '@/lib/dynamodb'
-import type { DynamoRecord, MedicationRecord, CreateRecordInput } from '@/types'
+import type { DynamoRecord, MedicationRecord } from '@/types'
+import { rejectUnauthorizedMvpRequest } from '@/lib/mvp-access'
+import { InputValidationError, isValidDate, parseCreateRecordInput } from '@/lib/record-validation'
 
 function toApiRecord(item: DynamoRecord): MedicationRecord {
   return {
@@ -20,10 +22,23 @@ function toApiRecord(item: DynamoRecord): MedicationRecord {
 // GET /api/records?date=YYYY-MM-DD
 // GET /api/records?from=YYYY-MM-DD&to=YYYY-MM-DD
 export async function GET(request: Request) {
+  const unauthorized = await rejectUnauthorizedMvpRequest(request)
+  if (unauthorized) return unauthorized
+
   const { searchParams } = new URL(request.url)
   const date = searchParams.get('date')
   const from = searchParams.get('from')
   const to = searchParams.get('to')
+
+  if (date && !isValidDate(date)) {
+    return Response.json({ error: '日付が正しくありません' }, { status: 400 })
+  }
+  if ((from && !isValidDate(from)) || (to && !isValidDate(to)) || Boolean(from) !== Boolean(to)) {
+    return Response.json({ error: 'from/toには正しい日付を両方指定してください' }, { status: 400 })
+  }
+  if (from && to && from > to) {
+    return Response.json({ error: 'fromはto以前の日付を指定してください' }, { status: 400 })
+  }
 
   const pk = makePK(USER_ID)
   let keyCondition: string
@@ -52,12 +67,17 @@ export async function GET(request: Request) {
 
 // POST /api/records
 export async function POST(request: Request) {
-  const body: CreateRecordInput = await request.json()
-  const { date, time, timing, source = 'manual', notes } = body
+  const unauthorized = await rejectUnauthorizedMvpRequest(request)
+  if (unauthorized) return unauthorized
 
-  if (!date || !time || !timing) {
-    return Response.json({ error: 'date, time, timing は必須です' }, { status: 400 })
+  let input
+  try {
+    input = parseCreateRecordInput(await request.json())
+  } catch (error) {
+    const message = error instanceof InputValidationError ? error.message : 'JSONの形式が正しくありません'
+    return Response.json({ error: message }, { status: 400 })
   }
+  const { date, time, timing, notes } = input
 
   const uuid = randomUUID()
   const pk = makePK(USER_ID)
@@ -71,7 +91,7 @@ export async function POST(request: Request) {
     date,
     time,
     timing,
-    source,
+    source: 'manual',
     notes,
     createdAt: now,
   }

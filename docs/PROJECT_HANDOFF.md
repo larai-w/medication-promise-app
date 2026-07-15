@@ -1,9 +1,10 @@
 # Project Handoff: Drug and Oath
 
-Last updated: 2026-07-13
+Last updated: 2026-07-15
 
-> **最新の作業ログは `docs/SESSION_NOTE_2026-07-13.md` を先に読むこと。**
-> このセッションで Web ホスティングを Amplify → **OpenNext + SST** に移行し、AWS 本番稼働済み。
+> **最新の作業ログは `docs/SESSION_NOTE_2026-07-15_MVP.md` を先に読むこと。**
+> 2026-07-15に、一世帯限定MVP用のWebアクセス保護、API検証、法務案内ページ、Alexaの安全な文言・設定化を本番反映した。
+> ただしデータは引き続き `default-user` 固定。共有アクセスコードは世帯分離ではないため、一般公開は禁止。
 >
 > **重要な前提（間違えやすい）**
 > - AWS リソースは **us-east-1**（DynamoDB `DrugAndOathRecords`・Alexa Lambda `DrugAndOathFunction`・
@@ -23,13 +24,10 @@ The actual Git repository is `drug-and-oath/`. The parent directory is only the 
 
 Current Git state at this update:
 
-- Branch has two commits: initial commit and `chore: remove duplicate layout and page files`.
-- Uncommitted changes exist in:
-  - `alexa/index.mjs`
-  - `alexa/interaction-model.json`
-- GitHub Actions CI has been added locally in `.github/workflows/ci.yml`.
-- GitHub Issue Forms have been added locally for user stories and tasks.
-- Ignored local artifacts include `node_modules/`, `web/.next/`, `web/.env.local`, `web/next-env.d.ts`, `web/tsconfig.tsbuildinfo`, and `.DS_Store`.
+- Web本番は共有アクセスコード必須。URLを知っているだけでは記録/APIへアクセスできない。
+- WebとAlexaのコードは2026-07-15時点で本番反映済み。コミット・CI結果は最新セッションノートを参照。
+- AlexaインタラクションモデルのDeveloper Console反映と実機確認は、人間が行う残タスク。
+- ブログ下書きはこのリポジトリの `docs/` にのみ置き、`veai-jp-web` には置かない。
 
 ## Implemented Features
 

@@ -26,6 +26,7 @@ CloudFront + Lambda（サーバー）+ S3（静的アセット）の構成で、
   Web の Lambda は `DYNAMODB_REGION=us-east-1` でクロスリージョン参照する。
 - サーバー Lambda に us-east-1 テーブルへの最小権限を付与済み
 - 環境変数: `DYNAMODB_REGION=us-east-1` / `DYNAMODB_TABLE_NAME` / `USER_ID`（`sst.config.ts` に定義）
+- MVPアクセス保護: SST Secret `MvpAccessCode` / `MvpSessionSecret` をサーバー環境へ注入。値はリポジトリへ保存しない。
 
 > **重要な教訓**: このアプリの AWS リソースは基本 us-east-1 に集約されている
 > （DynamoDB・Alexa Lambda `DrugAndOathFunction`・veai.jp API Gateway）。
@@ -41,6 +42,10 @@ CloudFront + Lambda（サーバー）+ S3（静的アセット）の構成で、
 ## コマンド（`web/` で実行）
 
 ```bash
+# 初回またはローテーション時のみ。値は十分長いランダム文字列にする
+npx sst secret set MvpAccessCode '<16文字以上のアクセスコード>' --stage production
+npx sst secret set MvpSessionSecret '<32文字以上のランダム値>' --stage production
+
 # デプロイ（本番）
 npm run deploy            # = sst deploy --stage production
 
@@ -54,8 +59,10 @@ npm run sst:remove
 ## 初回デプロイ後にやること
 
 1. `sst deploy` の出力に表示される **CloudFront の URL** をメモする
-2. その URL でアプリの動作確認（服薬記録のワンタップ・PDF・月次画面）
+2. その URLでログインし、アプリの動作確認（服薬記録のワンタップ・PDF・月次画面）
 3. 独自ドメイン（veai.jp 配下）に載せる場合は下記「veai.jp 統合」を参照
+
+本番は共有アクセスコード必須で、未認証APIは401になる。`robots.txt` とページメタデータも `noindex` にしている。これは一世帯限定MVP用の暫定保護であり、複数世帯公開には認証・世帯別データ分離が別途必要。
 
 ## veai.jp 統合（任意・後回し可）
 

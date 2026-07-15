@@ -6,6 +6,8 @@ import { docClient, TABLE_NAME, USER_ID, makePK } from '@/lib/dynamodb'
 import MedPdfDocument from '@/lib/MedPdfDocument'
 import type { DynamoRecord, MedicationRecord } from '@/types'
 import { encodeSK } from '@/lib/dynamodb'
+import { rejectUnauthorizedMvpRequest } from '@/lib/mvp-access'
+import { isValidMonth } from '@/lib/record-validation'
 
 function toApiRecord(item: DynamoRecord): MedicationRecord {
   return {
@@ -23,10 +25,13 @@ function toApiRecord(item: DynamoRecord): MedicationRecord {
 
 // GET /api/records/pdf?month=YYYY-MM
 export async function GET(request: Request) {
+  const unauthorized = await rejectUnauthorizedMvpRequest(request)
+  if (unauthorized) return unauthorized
+
   const { searchParams } = new URL(request.url)
   const month = searchParams.get('month') // e.g. "2026-06"
 
-  if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+  if (!isValidMonth(month)) {
     return Response.json({ error: 'month パラメータが必要です (例: 2026-06)' }, { status: 400 })
   }
 

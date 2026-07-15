@@ -2,11 +2,13 @@
   "name": "web",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --experimental-strip-types --test",
     "deploy": "sst deploy --stage production",
     "sst:dev": "sst dev",
     "sst:remove": "sst remove --stage production"

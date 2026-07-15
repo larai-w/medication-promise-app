@@ -16,6 +16,9 @@ export default $config({
     }
   },
   async run() {
+    const mvpAccessCode = new sst.Secret('MvpAccessCode')
+    const mvpSessionSecret = new sst.Secret('MvpSessionSecret')
+
     // DynamoDB テーブル・Alexa Lambda・API Gateway は us-east-1（veai エコシステムの本拠）。
     // Web インフラ（CloudFront/Lambda）は日本利用者に近い ap-northeast-1 に置き、
     // DynamoDB だけクロスリージョンで us-east-1 を参照する。
@@ -28,6 +31,9 @@ export default $config({
         DYNAMODB_REGION: 'us-east-1',
         DYNAMODB_TABLE_NAME: 'DrugAndOathRecords',
         USER_ID: 'default-user',
+        MVP_ACCESS_GATE: 'enabled',
+        MVP_ACCESS_CODE: mvpAccessCode.value,
+        MVP_SESSION_SECRET: mvpSessionSecret.value,
       },
       // サーバー Lambda に既存 DynamoDB テーブルへの最小権限を付与
       permissions: [
