@@ -34,22 +34,39 @@ export default function MainScreen() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const readRecords = useCallback(async (response: Response) => {
+    if (response.status === 401) {
+      window.location.assign('/login')
+      throw new Error('ログインの有効期限が切れました')
+    }
+    if (!response.ok) throw new Error('記録を読み込めませんでした')
+    const body: unknown = await response.json()
+    if (!Array.isArray(body)) throw new Error('記録の形式が正しくありません')
+    return body as MedicationRecord[]
+  }, [])
+
   const fetchToday = useCallback(async () => {
     const res = await fetch(`/api/records?date=${today}`)
-    setTodayRecords(await res.json())
-  }, [today])
+    setTodayRecords(await readRecords(res))
+  }, [readRecords, today])
 
   const fetchRecent = useCallback(async () => {
     const from = format(subDays(new Date(), 6), 'yyyy-MM-dd')
     const to = format(subDays(new Date(), 1), 'yyyy-MM-dd')
     const res = await fetch(`/api/records?from=${from}&to=${to}`)
-    setRecentRecords(await res.json())
-  }, [])
+    setRecentRecords(await readRecords(res))
+  }, [readRecords])
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
-    await Promise.all([fetchToday(), fetchRecent()])
-    setLoading(false)
+    setError(null)
+    try {
+      await Promise.all([fetchToday(), fetchRecent()])
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : '記録を読み込めませんでした')
+    } finally {
+      setLoading(false)
+    }
   }, [fetchToday, fetchRecent])
 
   useEffect(() => {
@@ -68,8 +85,9 @@ export default function MainScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date: today, time: TIMING_DEFAULTS[timing], timing, source: 'manual' }),
       })
+      if (res.status === 401) window.location.assign('/login')
       if (!res.ok) throw new Error()
-      void fetchToday()
+      await fetchToday()
     } catch {
       setError('記録の保存に失敗しました。もう一度お試しください。')
     }
@@ -85,7 +103,7 @@ export default function MainScreen() {
     try {
       const res = await fetch(`/api/records/${deleteTargetId}`, { method: 'DELETE' })
       if (!res.ok) throw new Error()
-      void fetchToday()
+      await fetchToday()
     } catch {
       setError('削除に失敗しました。もう一度お試しください。')
     }
@@ -109,7 +127,7 @@ export default function MainScreen() {
       }
       if (!res.ok) throw new Error()
       setModalState(null)
-      void fetchAll()
+      await fetchAll()
     } catch {
       setError('保存に失敗しました。もう一度お試しください。')
     }
@@ -118,10 +136,15 @@ export default function MainScreen() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-indigo-700 text-white px-4 py-4 flex items-center justify-between sticky top-0 z-10 shadow-md">
-        <h1 className="text-xl font-bold tracking-wide">Drug and Oath</h1>
-        <Link href="/monthly" className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors">
-          月間表示
-        </Link>
+        <h1 className="text-xl font-bold tracking-wide">おくすりの約束</h1>
+        <div className="flex items-center gap-2">
+          <Link href="/monthly" className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors">
+            月間表示
+          </Link>
+          <form action="/api/access/logout" method="post">
+            <button type="submit" className="text-xs text-white/80 hover:text-white px-2 py-1.5">終了</button>
+          </form>
+        </div>
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 space-y-8 pb-16">
@@ -155,6 +178,10 @@ export default function MainScreen() {
             <RecentList records={recentRecords} />
           )}
         </section>
+        <footer className="pt-4 flex gap-4 text-xs text-gray-500">
+          <Link href="/privacy" className="underline">プライバシー</Link>
+          <Link href="/terms" className="underline">利用条件</Link>
+        </footer>
       </main>
 
       {modalState && (

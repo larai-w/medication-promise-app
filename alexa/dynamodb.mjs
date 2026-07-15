@@ -6,7 +6,7 @@ const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME ?? 'DrugAndOathRecords'
 const USER_ID    = process.env.USER_ID ?? 'default-user'
 
 const client = new DynamoDBClient({
-  region: process.env.AWS_REGION ?? 'ap-northeast-1',
+  region: process.env.DYNAMODB_REGION ?? process.env.AWS_REGION ?? 'us-east-1',
 })
 
 const docClient = DynamoDBDocumentClient.from(client, {

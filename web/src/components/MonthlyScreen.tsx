@@ -12,6 +12,7 @@ export default function MonthlyScreen() {
   const [records, setRecords] = useState<MedicationRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const yearMonth = format(currentDate, 'yyyy-MM')
   const monthLabel = format(currentDate, 'yyyy年M月', { locale: ja })
@@ -19,12 +20,25 @@ export default function MonthlyScreen() {
 
   const fetchRecords = useCallback(async () => {
     setLoading(true)
+    setError(null)
     const days = getDaysInMonth(currentDate)
     const from = `${yearMonth}-01`
     const to = `${yearMonth}-${String(days).padStart(2, '0')}`
-    const res = await fetch(`/api/records?from=${from}&to=${to}`)
-    setRecords(await res.json())
-    setLoading(false)
+    try {
+      const res = await fetch(`/api/records?from=${from}&to=${to}`)
+      if (res.status === 401) {
+        window.location.assign('/login')
+        return
+      }
+      if (!res.ok) throw new Error('月間記録を読み込めませんでした')
+      const body: unknown = await res.json()
+      if (!Array.isArray(body)) throw new Error('月間記録の形式が正しくありません')
+      setRecords(body as MedicationRecord[])
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : '月間記録を読み込めませんでした')
+    } finally {
+      setLoading(false)
+    }
   }, [currentDate, yearMonth])
 
   useEffect(() => {
@@ -47,8 +61,13 @@ export default function MonthlyScreen() {
 
   const handleDownloadPdf = async () => {
     setDownloading(true)
+    setError(null)
     try {
       const res = await fetch(`/api/records/pdf?month=${yearMonth}`)
+      if (res.status === 401) {
+        window.location.assign('/login')
+        return
+      }
       if (!res.ok) throw new Error('PDF生成に失敗しました')
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
@@ -57,6 +76,8 @@ export default function MonthlyScreen() {
       a.download = `drug-and-oath-${yearMonth}.pdf`
       a.click()
       URL.revokeObjectURL(url)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'PDF生成に失敗しました')
     } finally {
       setDownloading(false)
     }
@@ -65,13 +86,23 @@ export default function MonthlyScreen() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-indigo-700 text-white px-4 py-4 flex items-center justify-between sticky top-0 z-10 shadow-md">
-        <h1 className="text-xl font-bold tracking-wide">Drug and Oath</h1>
-        <Link href="/" className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors">
-          メイン画面
-        </Link>
+        <h1 className="text-xl font-bold tracking-wide">おくすりの約束</h1>
+        <div className="flex items-center gap-2">
+          <Link href="/" className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors">
+            メイン画面
+          </Link>
+          <form action="/api/access/logout" method="post">
+            <button type="submit" className="text-xs text-white/80 hover:text-white px-2 py-1.5">終了</button>
+          </form>
+        </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6">
+        {error && (
+          <div role="alert" className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+            {error}
+          </div>
+        )}
         {/* Month navigation */}
         <div className="flex items-center justify-between mb-6">
           <button

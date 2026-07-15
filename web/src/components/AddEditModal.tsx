@@ -88,8 +88,10 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
             onChange={e => setNotes(e.target.value)}
             placeholder="気になることがあれば..."
             rows={2}
+            maxLength={200}
             className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
+          <p className="text-xs text-gray-400 mt-1 text-right">{notes.length}/200</p>
         </div>
 
         <div className="flex gap-3 pt-1">

@@ -29,6 +29,7 @@ jobs:
           cache-dependency-path: web/package-lock.json
 
       - run: npm ci
+      - run: npm test
       - run: npm run lint
       - run: npm run build
 
@@ -52,6 +53,7 @@ jobs:
 
       - run: npm ci
       - run: node --check index.mjs
+      - run: npm test
 
       - name: Build Lambda zip
         run: npm run zip
@@ -113,8 +115,7 @@ jobs:
             --zip-file fileb://skill.zip
 
   # ────────────────────────────────────────────
-  # CD: Web は Amplify が GitHub 連携で自動デプロイ
-  #     （GitHub Actions のジョブは不要）
-  #     Amplify コンソールで GitHub リポジトリを接続すると
-  #     main へのプッシュで自動ビルド＆デプロイが走る
+  # CD: Web は OpenNext + SST で手動デプロイ
+  #     cd web && npm run deploy
+  #     GitHub Actions からの自動デプロイは未設定
   # ────────────────────────────────────────────
