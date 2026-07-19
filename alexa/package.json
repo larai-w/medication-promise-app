@@ -7,12 +7,13 @@
   "scripts": {
     "install-prod": "npm install --omit=dev",
     "test": "node --test",
-    "zip": "zip -r skill.zip index.mjs config.mjs dynamodb.mjs node_modules package.json"
+    "zip": "zip -r skill.zip index.mjs config.mjs dynamodb.mjs household.mjs cognito.mjs node_modules package.json"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.0.0",
     "@aws-sdk/lib-dynamodb": "^3.0.0",
     "ask-sdk-core": "^2.14.0",
-    "ask-sdk-model": "^1.86.0"
+    "ask-sdk-model": "^1.86.0",
+    "aws-jwt-verify": "^5.2.1"
   }
 }
