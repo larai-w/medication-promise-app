@@ -1,0 +1,22 @@
+name: Add issues and pull requests to project
+
+on:
+  issues:
+    types: [opened, reopened]
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  add-to-project:
+    runs-on: ubuntu-latest
+    if: vars.PROJECT_URL != ''
+    steps:
+      - uses: actions/add-to-project@v2
+        with:
+          project-url: ${{ vars.PROJECT_URL }}
+          github-token: ${{ secrets.PROJECTS_TOKEN }}

@@ -4,7 +4,12 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { format, subDays } from 'date-fns'
 import { ja } from 'date-fns/locale'
-import { TIMINGS, TIMING_DEFAULTS, type Timing } from '@/lib/constants'
+import { TIMINGS, type Timing } from '@/lib/constants'
+import {
+  DEFAULT_MEDICATION_SETTINGS,
+  settingsToTimingDefaults,
+  type MedicationSettings,
+} from '@/lib/settings'
 import type { MedicationRecord } from '@/types'
 import MedicationButton from './MedicationButton'
 import AddEditModal from './AddEditModal'
@@ -33,6 +38,7 @@ export default function MainScreen() {
   const [modalState, setModalState] = useState<ModalState | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [settings, setSettings] = useState<MedicationSettings>(DEFAULT_MEDICATION_SETTINGS)
 
   const readRecords = useCallback(async (response: Response) => {
     if (response.status === 401) {
@@ -57,17 +63,27 @@ export default function MainScreen() {
     setRecentRecords(await readRecords(res))
   }, [readRecords])
 
+  const fetchSettings = useCallback(async () => {
+    const res = await fetch('/api/settings')
+    if (res.status === 401) {
+      window.location.assign('/login')
+      throw new Error('ログインの有効期限が切れました')
+    }
+    if (!res.ok) throw new Error('設定を読み込めませんでした')
+    setSettings(await res.json() as MedicationSettings)
+  }, [])
+
   const fetchAll = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      await Promise.all([fetchToday(), fetchRecent()])
+      await Promise.all([fetchToday(), fetchRecent(), fetchSettings()])
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '記録を読み込めませんでした')
     } finally {
       setLoading(false)
     }
-  }, [fetchToday, fetchRecent])
+  }, [fetchToday, fetchRecent, fetchSettings])
 
   useEffect(() => {
     void Promise.resolve().then(fetchAll)
@@ -77,13 +93,14 @@ export default function MainScreen() {
     (acc, t) => { acc[t] = todayRecords.find(r => r.timing === t); return acc },
     {} as Record<Timing, MedicationRecord | undefined>
   )
+  const timingDefaults = settingsToTimingDefaults(settings)
 
   const handleQuickRecord = async (timing: Timing) => {
     try {
       const res = await fetch('/api/records', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: today, time: TIMING_DEFAULTS[timing], timing, source: 'manual' }),
+        body: JSON.stringify({ date: today, time: timingDefaults[timing], timing, source: 'manual' }),
       })
       if (res.status === 401) window.location.assign('/login')
       if (!res.ok) throw new Error()
@@ -140,6 +157,9 @@ export default function MainScreen() {
         <div className="flex items-center gap-2">
           <Link href="/monthly" className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors">
             月間表示
+          </Link>
+          <Link href="/settings" className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors">
+            設定
           </Link>
           <form action="/api/access/logout" method="post">
             <button type="submit" className="text-xs text-white/80 hover:text-white px-2 py-1.5">終了</button>

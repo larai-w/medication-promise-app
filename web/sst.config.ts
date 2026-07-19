@@ -27,6 +27,7 @@ export default $config({
 
     new sst.aws.Nextjs('Web', {
       path: '.',
+      domain: 'kusuri.veai.jp',
       environment: {
         DYNAMODB_REGION: 'us-east-1',
         DYNAMODB_TABLE_NAME: 'DrugAndOathRecords',

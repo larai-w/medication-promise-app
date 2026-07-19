@@ -1,132 +1,107 @@
-# GitHub Project And Automation Plan
+# GitHub Project And Agile Portfolio Automation
 
-## Current GitHub Status
+## Purpose
 
-Checked on 2026-07-06:
+The public GitHub delivery trail should show how Medication Promise was framed, prioritised, verified, and constrained as a HealthTech product. It must remain honest about chronology: the detailed roadmap and session notes existed before the GitHub issue portfolio.
 
-- Repository: `larai-w/medication-promise-app`
-- Visibility: public
-- Issues: enabled
-- Projects: enabled
-- GitHub Actions workflows: none before adding `.github/workflows/ci.yml`
-- Recent workflow runs: none before adding CI
+Completed work is therefore labelled `evidence:backfill` and linked to contemporaneous commits. New work is managed live through GitHub Issues, pull requests, and the Project board.
 
-## What Is Now Automated
+## Portfolio Structure
 
-The repository has a basic GitHub Actions CI workflow:
+Project title: `Medication Promise — Agile Delivery`
 
-- Runs on pull requests.
-- Runs on pushes to `main`.
-- Web job:
-  - `npm ci`
-  - `npm run lint`
-  - `npm run build`
-- Alexa job:
-  - `npm ci`
-  - `node --check index.mjs`
-  - `npm run zip`
-  - uploads `alexa/skill.zip` as a workflow artifact.
+Live project: [github.com/users/larai-w/projects/9](https://github.com/users/larai-w/projects/9)
 
-This is CI, not full CD. CD should be added after the production deployment target and required secrets are confirmed.
+Recommended views:
 
-## Recommended GitHub Project Setup
+- `Delivery board`: grouped by Status.
+- `Priorities`: table grouped by Priority.
+- `Roadmap`: grouped by Milestone or Target.
+- `HealthTech risk`: filter `area:safety`.
+- `AI-assisted work`: filter `process:ai-assisted`.
 
-Create one GitHub Project for the repository:
+Fields:
 
-- Name: `Drug and Oath`
-- Views:
-  - Board by `Status`
-  - Table by `Priority`
-  - Roadmap by iteration or milestone
-- Fields:
-  - `Status`: Backlog, Ready, In progress, In review, Done
-  - `Priority`: P0, P1, P2, P3
-  - `Area`: web, alexa, data, ci-cd, docs
-  - `Size`: S, M, L
-  - `Target`: MVP, v1, later
+| Field | Options |
+| --- | --- |
+| Status | Todo, In Progress, Done |
+| Priority | P0, P1, P2, P3 |
+| Area | Web, Alexa, Data, Delivery, Safety, Docs |
+| Size | S, M, L, XL |
+| Target | Household MVP, Limited Beta, Public Readiness |
 
-Recommended labels:
+Milestones:
 
-- `story`
-- `task`
-- `bug`
-- `web`
-- `alexa`
-- `data`
-- `ci-cd`
-- `docs`
-- `P0`
-- `P1`
-- `P2`
-- `P3`
+1. `Household MVP — Evidence Backfill`
+2. `Limited Beta — Identity and Validation`
+3. `Public Readiness — Safety and Operations`
 
-## User Story Workflow
+## Bootstrap
 
-Use `.github/ISSUE_TEMPLATE/user_story.yml` for product work.
+The script is idempotent by issue title and milestone title.
 
-Good story shape:
-
-```text
-As a [user/persona],
-I want [capability],
-so that [outcome].
+```bash
+node scripts/bootstrap-github-portfolio.mjs --dry-run
+node scripts/bootstrap-github-portfolio.mjs
 ```
 
-Acceptance criteria should be concrete and testable:
+It creates:
 
-```text
-- [ ] Given ...
-- [ ] When ...
-- [ ] Then ...
+- Portfolio labels, including `evidence:backfill` and `process:ai-assisted`.
+- Three outcome milestones.
+- Nine completed household-MVP stories with commit evidence.
+- Six open stories for beta and public readiness.
+
+After the Project exists, add all issues:
+
+```bash
+node scripts/bootstrap-github-portfolio.mjs --project <PROJECT_NUMBER>
 ```
 
-## Initial Story Backlog
+The same command synchronises Priority, Area, Size, and Target from issue labels,
+milestones, and the evidence-backed story estimates.
 
-Suggested first stories to create:
+GitHub CLI requires the `project` scope for Project commands:
 
-1. `[Story] Caregiver can review today's medication status`
-2. `[Story] Caregiver can edit mistaken medication records`
-3. `[Story] Caregiver can export a monthly medication PDF`
-4. `[Story] Patient can record medication by voice through Alexa`
-5. `[Story] Patient can set daily medication reminders through Alexa`
-6. `[Story] Caregiver can identify missing medication times in monthly view`
-7. `[Story] Maintainer can validate app changes with CI`
-8. `[Story] Maintainer can deploy web updates safely`
-9. `[Story] Maintainer can deploy Alexa Lambda safely`
+```bash
+gh auth refresh -h github.com -s project
+```
 
-## What Can Be Automated Next
+## Repository Automation
 
-High-value automation:
+`.github/workflows/add-to-project.yml` adds newly opened/reopened issues and pull requests to the Project. It remains skipped until the repository variable is configured:
 
-1. Auto-add every new issue and PR to the GitHub Project.
-2. Auto-set project status:
-   - new issue -> Backlog
-   - issue assigned or moved manually -> Ready/In progress
-   - PR opened -> In review
-   - PR merged and linked issue closed -> Done
-3. Auto-label by changed path:
-   - `web/**` -> `web`
-   - `alexa/**` -> `alexa`
-   - `.github/**` -> `ci-cd`
-   - `docs/**` -> `docs`
-4. Add branch protection for `main`:
-   - require PR
-   - require CI checks
-   - block direct pushes
-5. Add Dependabot for npm dependency updates.
-6. Add release automation:
-   - Web deployment after CI passes on `main`
-   - Alexa zip artifact or Lambda deployment after CI passes on `main`
+- Variable `PROJECT_URL`: full GitHub Project URL.
+- Secret `PROJECTS_TOKEN`: token with write access to the user Project and read access to repository issues/pull requests.
 
-## Automation Requirements
+Use a dedicated, expiring personal access token for this workflow. Do not reuse the
+interactive `gh` login token, commit the token, or paste it into an issue, pull request,
+chat, or documentation. Enter it directly as the repository secret
+`PROJECTS_TOKEN`. GitHub's documented classic-token scopes for user Project
+automation are `project` and `repo`.
 
-GitHub Project creation and Project item field automation require authenticated GitHub operations.
+`.github/workflows/label-pr.yml` uses `.github/labeler.yml` to label pull requests by changed path.
 
-Options:
+The user-story, task, bug, and pull-request templates require acceptance evidence and HealthTech risk review.
 
-- Install `gh` locally and authenticate with `gh auth login`.
-- Use a fine-grained GitHub token with repo and project permissions.
-- Use GitHub's built-in Project workflows manually for simple status automation.
+## Live Operating Rules
 
-Because this environment does not currently have `gh` installed, Project creation could not be performed locally during this update.
+1. Create the English user story before implementation.
+2. Put technical subtasks under the outcome story or link separate task issues.
+3. Keep the story in Todo until the Definition of Ready in `docs/AGILE_DELIVERY.md` is satisfied; move it to In Progress when delivery starts.
+4. Link the pull request with `Closes #N`.
+5. Record automated and device/production evidence before acceptance.
+6. Use `process:ai-assisted` when AI materially contributed under human review.
+7. Do not close safety or identity stories based only on code existing locally.
 
+## Portfolio Integrity
+
+Do not claim that:
+
+- Historical issue timestamps represent the original planning dates.
+- A solo project used every Scrum role or ceremony.
+- A household access code is multi-user authentication.
+- Automated tests verify physical Echo behaviour.
+- Medication logs demonstrate clinical outcomes.
+
+The portfolio is stronger when these boundaries are visible. They show product judgement, not missing confidence.

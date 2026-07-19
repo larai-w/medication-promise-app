@@ -91,6 +91,9 @@ export default function MonthlyScreen() {
           <Link href="/" className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors">
             メイン画面
           </Link>
+          <Link href="/settings" className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors">
+            設定
+          </Link>
           <form action="/api/access/logout" method="post">
             <button type="submit" className="text-xs text-white/80 hover:text-white px-2 py-1.5">終了</button>
           </form>

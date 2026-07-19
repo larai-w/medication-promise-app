@@ -34,6 +34,42 @@ web/next-env.d.ts
 # Alexa / Lambda デプロイ成果物
 # ==============================
 alexa/skill.zip
+.ask/
+
+# Alexa Developer Console / ASK models (private; never publish)
+ask-resources.json
+**/skill-package/
+**/interactionModels/
+**/interaction-model*.json
+
+# Trained AI/ML model artifacts (private; never publish)
+*.onnx
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.h5
+*.pkl
+
+# ==============================
+# 内部資料（公開GitHubへ絶対にアップロードしない）
+# ==============================
+docs/private/
+docs/internal/
+docs/blog-drafts/
+docs/BLOG_DRAFT*.md
+docs/AGENT_WORKFLOW.md
+docs/ALEXA_ASK_CLI.md
+docs/FABLE_SKILLS.md
+docs/GROWTH*.md
+docs/HUMAN_TASKS.md
+docs/NOTE_FOR_HUMAN.md
+docs/PRODUCT_RELEASE_AND_GROWTH_NOTE*.md
+docs/PROJECT_HANDOFF.md
+docs/SESSION_NOTE*.md
+docs/STRATEGY_AND_ROADMAP.md
+docs/TASKS.md
+docs/WEB_HOSTING_OPENNEXT.md
 
 # ==============================
 # OS・エディタ

@@ -4,6 +4,10 @@ title: "[Story] "
 labels:
   - story
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe an outcome that can be independently verified. Keep implementation tasks separate unless they affect acceptance.
   - type: textarea
     id: story
     attributes:
@@ -30,6 +34,13 @@ body:
         - [ ] 
     validations:
       required: true
+  - type: textarea
+    id: risk
+    attributes:
+      label: Risks and non-goals
+      description: Record safety, privacy, data-boundary, operational risks, and what this story will not attempt.
+    validations:
+      required: true
   - type: dropdown
     id: area
     attributes:
@@ -40,6 +51,8 @@ body:
         - data
         - ci-cd
         - docs
+        - product-management
+        - safety
     validations:
       required: true
   - type: dropdown
@@ -56,6 +69,5 @@ body:
   - type: textarea
     id: notes
     attributes:
-      label: Notes
-      description: Links, screenshots, constraints, or implementation notes.
-
+      label: Evidence and notes
+      description: Link research, decisions, commits, tests, screenshots, or production verification.

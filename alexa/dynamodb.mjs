@@ -1,5 +1,5 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb'
+import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb'
 import { randomUUID } from 'crypto'
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME ?? 'DrugAndOathRecords'
@@ -12,6 +12,8 @@ const client = new DynamoDBClient({
 const docClient = DynamoDBDocumentClient.from(client, {
   marshallOptions: { removeUndefinedValues: true },
 })
+
+const SETTINGS_SK = 'SETTINGS#medication'
 
 // Lambda は UTC で動くので JST (+9h) に変換する
 function nowJST() {
@@ -44,4 +46,20 @@ export async function recordMedication(timing) {
   }))
 
   return { date, time, timing }
+}
+
+export async function getMedicationSettings() {
+  const result = await docClient.send(new GetCommand({
+    TableName: TABLE_NAME,
+    Key: {
+      PK: `USER#${USER_ID}`,
+      SK: SETTINGS_SK,
+    },
+  }))
+
+  if (!result.Item) return {}
+  return {
+    medicationName: typeof result.Item.medicationName === 'string' ? result.Item.medicationName : '',
+    reminderSchedule: Array.isArray(result.Item.reminderSchedule) ? result.Item.reminderSchedule : undefined,
+  }
 }
