@@ -1,7 +1,7 @@
 import { UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb'
-import { docClient, TABLE_NAME, USER_ID, makePK, decodeSK, encodeSK } from '@/lib/dynamodb'
+import { docClient, TABLE_NAME, decodeSK, encodeSK } from '@/lib/dynamodb'
 import type { DynamoRecord, MedicationRecord } from '@/types'
-import { rejectUnauthorizedMvpRequest } from '@/lib/mvp-access'
+import { resolveRequestHousehold, unauthorizedHouseholdResponse } from '@/lib/household'
 import { InputValidationError, parseUpdateRecordInput, validateRecordSortKey } from '@/lib/record-validation'
 
 function isNotFoundError(error: unknown) {
@@ -27,8 +27,14 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const unauthorized = await rejectUnauthorizedMvpRequest(request)
-  if (unauthorized) return unauthorized
+  let household
+  try {
+    household = await resolveRequestHousehold(request)
+  } catch (error) {
+    const unauthorized = unauthorizedHouseholdResponse(error)
+    if (unauthorized) return unauthorized
+    throw error
+  }
 
   const { id } = await params
   let input
@@ -40,7 +46,6 @@ export async function PUT(
   }
   const { time, timing, notes } = input
 
-  const pk = makePK(USER_ID)
   let sk
   try {
     sk = validateRecordSortKey(decodeSK(id))
@@ -61,7 +66,7 @@ export async function PUT(
   try {
     result = await docClient.send(new UpdateCommand({
       TableName: TABLE_NAME,
-      Key: { PK: pk, SK: sk },
+      Key: { PK: household.partitionKey, SK: sk },
       UpdateExpression: `SET ${updateParts.join(', ')}`,
       ExpressionAttributeValues: values,
       ConditionExpression: 'attribute_exists(PK) AND attribute_exists(SK)',
@@ -82,11 +87,16 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const unauthorized = await rejectUnauthorizedMvpRequest(request)
-  if (unauthorized) return unauthorized
+  let household
+  try {
+    household = await resolveRequestHousehold(request)
+  } catch (error) {
+    const unauthorized = unauthorizedHouseholdResponse(error)
+    if (unauthorized) return unauthorized
+    throw error
+  }
 
   const { id } = await params
-  const pk = makePK(USER_ID)
   let sk
   try {
     sk = validateRecordSortKey(decodeSK(id))
@@ -98,7 +108,7 @@ export async function DELETE(
   try {
     await docClient.send(new DeleteCommand({
       TableName: TABLE_NAME,
-      Key: { PK: pk, SK: sk },
+      Key: { PK: household.partitionKey, SK: sk },
       ConditionExpression: 'attribute_exists(PK) AND attribute_exists(SK)',
     }))
   } catch (error) {

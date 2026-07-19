@@ -21,6 +21,10 @@ export function makePK(userId: string) {
   return `USER#${userId}`
 }
 
+export function makeHouseholdPK(householdId: string) {
+  return `HOUSEHOLD#${householdId}`
+}
+
 export function makeSK(date: string, time: string, uuid: string) {
   return `RECORD#${date}T${time}:00#${uuid}`
 }
