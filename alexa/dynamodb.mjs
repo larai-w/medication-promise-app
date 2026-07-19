@@ -57,9 +57,63 @@ export async function getMedicationSettings() {
     },
   }))
 
-  if (!result.Item) return {}
+  return toMedicationSettings(result.Item)
+}
+
+function toMedicationSettings(item) {
+  if (!item) return {}
   return {
-    medicationName: typeof result.Item.medicationName === 'string' ? result.Item.medicationName : '',
-    reminderSchedule: Array.isArray(result.Item.reminderSchedule) ? result.Item.reminderSchedule : undefined,
+    medicationName: typeof item.medicationName === 'string' ? item.medicationName : '',
+    reminderSchedule: Array.isArray(item.reminderSchedule) ? item.reminderSchedule : undefined,
   }
+}
+
+// --- Household-scoped access (Issue #12) ---------------------------------
+//
+// These helpers write and read within a resolved household partition instead
+// of the legacy USER#<default-user> partition. `household` is the object
+// returned by resolveAlexaHousehold() in household.mjs and must carry a
+// `partitionKey` (HOUSEHOLD#<id>) and `householdId`. The DynamoDB client is
+// injectable so the data path is testable without hitting AWS.
+
+function assertHousehold(household) {
+  if (!household || typeof household.partitionKey !== 'string' || !household.partitionKey) {
+    throw new Error('recordMedicationForHousehold requires a resolved household')
+  }
+}
+
+export async function recordMedicationForHousehold(household, timing, { client = docClient } = {}) {
+  assertHousehold(household)
+  const { date, time, iso } = nowJST()
+  const uuid = randomUUID()
+  const sk   = `RECORD#${date}T${time}:00#${uuid}`
+
+  await client.send(new PutCommand({
+    TableName: TABLE_NAME,
+    Item: {
+      PK:        household.partitionKey,
+      SK:        sk,
+      userId:    household.householdId,
+      date,
+      time,
+      timing,
+      source:    'alexa',
+      createdAt: iso,
+    },
+  }))
+
+  return { date, time, timing }
+}
+
+export async function getMedicationSettingsForHousehold(household, { client = docClient } = {}) {
+  assertHousehold(household)
+  const result = await client.send(new GetCommand({
+    TableName: TABLE_NAME,
+    Key: {
+      PK: household.partitionKey,
+      SK: SETTINGS_SK,
+    },
+  }))
+
+  return toMedicationSettings(result.Item)
 }
