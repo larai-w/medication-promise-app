@@ -160,3 +160,6 @@ A doctoral proposal would require ethics review, informed consent, a defensible 
 The product is suitable for continued use in the existing household and for development storytelling. It is not ready for unrestricted public use. The next go/no-go gate requires per-household identity, Alexa account linking, isolation tests, deletion/recovery operations, and a small invitation-only validation period.
 
 This decision is the clearest demonstration of the PM approach used here: progress is measured by validated capability and controlled risk, not by how many features can be called finished.
+
+The first release-gate design for that next phase is documented in
+[Household identity and data isolation design](HOUSEHOLD_IDENTITY_DESIGN.md).
