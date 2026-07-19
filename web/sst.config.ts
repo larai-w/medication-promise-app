@@ -33,7 +33,7 @@ export default $config({
         DYNAMODB_TABLE_NAME: 'DrugAndOathRecords',
         USER_ID: 'default-user',
         HOUSEHOLD_ID: 'owner-household',
-        HOUSEHOLD_PARTITION_MODE: 'legacy-user',
+        HOUSEHOLD_PARTITION_MODE: 'household',
         MVP_ACCESS_GATE: 'enabled',
         MVP_ACCESS_CODE: mvpAccessCode.value,
         MVP_SESSION_SECRET: mvpSessionSecret.value,
