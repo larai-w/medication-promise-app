@@ -2,11 +2,11 @@ import { QueryCommand } from '@aws-sdk/lib-dynamodb'
 import { renderToBuffer } from '@react-pdf/renderer'
 import React from 'react'
 import { getDaysInMonth } from 'date-fns'
-import { docClient, TABLE_NAME, USER_ID, makePK } from '@/lib/dynamodb'
+import { docClient, TABLE_NAME } from '@/lib/dynamodb'
 import MedPdfDocument from '@/lib/MedPdfDocument'
 import type { DynamoRecord, MedicationRecord } from '@/types'
 import { encodeSK } from '@/lib/dynamodb'
-import { rejectUnauthorizedMvpRequest } from '@/lib/mvp-access'
+import { resolveRequestHousehold, unauthorizedHouseholdResponse } from '@/lib/household'
 import { isValidMonth } from '@/lib/record-validation'
 
 function toApiRecord(item: DynamoRecord): MedicationRecord {
@@ -25,8 +25,14 @@ function toApiRecord(item: DynamoRecord): MedicationRecord {
 
 // GET /api/records/pdf?month=YYYY-MM
 export async function GET(request: Request) {
-  const unauthorized = await rejectUnauthorizedMvpRequest(request)
-  if (unauthorized) return unauthorized
+  let household
+  try {
+    household = await resolveRequestHousehold(request)
+  } catch (error) {
+    const unauthorized = unauthorizedHouseholdResponse(error)
+    if (unauthorized) return unauthorized
+    throw error
+  }
 
   const { searchParams } = new URL(request.url)
   const month = searchParams.get('month') // e.g. "2026-06"
@@ -45,7 +51,7 @@ export async function GET(request: Request) {
     TableName: TABLE_NAME,
     KeyConditionExpression: 'PK = :pk AND SK BETWEEN :from AND :to',
     ExpressionAttributeValues: {
-      ':pk': makePK(USER_ID),
+      ':pk': household.partitionKey,
       ':from': `RECORD#${from}`,
       ':to': `RECORD#${to}~`,
     },
