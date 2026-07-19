@@ -1,8 +1,8 @@
 import { QueryCommand, PutCommand } from '@aws-sdk/lib-dynamodb'
 import { randomUUID } from 'crypto'
-import { docClient, TABLE_NAME, USER_ID, makePK, makeSK, encodeSK } from '@/lib/dynamodb'
+import { docClient, TABLE_NAME, makeSK, encodeSK } from '@/lib/dynamodb'
 import type { DynamoRecord, MedicationRecord } from '@/types'
-import { rejectUnauthorizedMvpRequest } from '@/lib/mvp-access'
+import { resolveRequestHousehold, unauthorizedHouseholdResponse } from '@/lib/household'
 import { InputValidationError, isValidDate, parseCreateRecordInput } from '@/lib/record-validation'
 
 function toApiRecord(item: DynamoRecord): MedicationRecord {
@@ -22,8 +22,14 @@ function toApiRecord(item: DynamoRecord): MedicationRecord {
 // GET /api/records?date=YYYY-MM-DD
 // GET /api/records?from=YYYY-MM-DD&to=YYYY-MM-DD
 export async function GET(request: Request) {
-  const unauthorized = await rejectUnauthorizedMvpRequest(request)
-  if (unauthorized) return unauthorized
+  let household
+  try {
+    household = await resolveRequestHousehold(request)
+  } catch (error) {
+    const unauthorized = unauthorizedHouseholdResponse(error)
+    if (unauthorized) return unauthorized
+    throw error
+  }
 
   const { searchParams } = new URL(request.url)
   const date = searchParams.get('date')
@@ -40,16 +46,15 @@ export async function GET(request: Request) {
     return Response.json({ error: 'fromはto以前の日付を指定してください' }, { status: 400 })
   }
 
-  const pk = makePK(USER_ID)
   let keyCondition: string
   let expressionValues: Record<string, string>
 
   if (date) {
     keyCondition = 'PK = :pk AND begins_with(SK, :prefix)'
-    expressionValues = { ':pk': pk, ':prefix': `RECORD#${date}` }
+    expressionValues = { ':pk': household.partitionKey, ':prefix': `RECORD#${date}` }
   } else if (from && to) {
     keyCondition = 'PK = :pk AND SK BETWEEN :from AND :to'
-    expressionValues = { ':pk': pk, ':from': `RECORD#${from}`, ':to': `RECORD#${to}~` }
+    expressionValues = { ':pk': household.partitionKey, ':from': `RECORD#${from}`, ':to': `RECORD#${to}~` }
   } else {
     return Response.json({ error: 'date または from/to が必要です' }, { status: 400 })
   }
@@ -67,8 +72,14 @@ export async function GET(request: Request) {
 
 // POST /api/records
 export async function POST(request: Request) {
-  const unauthorized = await rejectUnauthorizedMvpRequest(request)
-  if (unauthorized) return unauthorized
+  let household
+  try {
+    household = await resolveRequestHousehold(request)
+  } catch (error) {
+    const unauthorized = unauthorizedHouseholdResponse(error)
+    if (unauthorized) return unauthorized
+    throw error
+  }
 
   let input
   try {
@@ -80,14 +91,13 @@ export async function POST(request: Request) {
   const { date, time, timing, notes } = input
 
   const uuid = randomUUID()
-  const pk = makePK(USER_ID)
   const sk = makeSK(date, time, uuid)
   const now = new Date().toISOString()
 
   const item: DynamoRecord = {
-    PK: pk,
+    PK: household.partitionKey,
     SK: sk,
-    userId: USER_ID,
+    userId: household.householdId,
     date,
     time,
     timing,
