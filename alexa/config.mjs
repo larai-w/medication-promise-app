@@ -8,6 +8,14 @@ export const DEFAULT_REMINDER_SCHEDULE = Object.freeze([
 
 const SUPPORTED_TIMINGS = new Set(DEFAULT_REMINDER_SCHEDULE.map(({ timing }) => timing))
 
+function parseTime(value) {
+  if (typeof value !== 'string' || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value)) {
+    return undefined
+  }
+  const [hour, min] = value.split(':').map(Number)
+  return { hour, min }
+}
+
 function validateSchedule(schedule) {
   if (!Array.isArray(schedule) || schedule.length === 0 || schedule.length > 10) {
     throw new Error('REMINDER_SCHEDULE_JSON must contain 1 to 10 reminders')
@@ -16,8 +24,9 @@ function validateSchedule(schedule) {
   const seen = new Set()
   return schedule.map((item) => {
     const timing = typeof item?.timing === 'string' ? item.timing.trim() : ''
-    const hour = Number(item?.hour)
-    const min = Number(item?.min)
+    const parsedTime = parseTime(item?.time)
+    const hour = parsedTime?.hour ?? Number(item?.hour)
+    const min = parsedTime?.min ?? Number(item?.min)
 
     if (!SUPPORTED_TIMINGS.has(timing)) {
       throw new Error(`Unsupported reminder timing: ${timing || '(empty)'}`)
@@ -36,7 +45,9 @@ function validateSchedule(schedule) {
   })
 }
 
-export function getReminderSchedule(env = process.env) {
+export function getReminderSchedule(env = process.env, storedSchedule) {
+  if (storedSchedule) return validateSchedule(storedSchedule)
+
   const raw = env.REMINDER_SCHEDULE_JSON
   if (!raw) return DEFAULT_REMINDER_SCHEDULE.map((item) => ({ ...item }))
 
@@ -47,6 +58,13 @@ export function getReminderSchedule(env = process.env) {
     throw new Error('REMINDER_SCHEDULE_JSON must be valid JSON')
   }
   return validateSchedule(parsed)
+}
+
+export function getMedicationName(env = process.env, settings = {}) {
+  if (typeof settings.medicationName === 'string' && settings.medicationName.trim()) {
+    return settings.medicationName.trim()
+  }
+  return env.MEDICATION_NAME ?? ''
 }
 
 export function buildReminderText(timing, medicationName = '') {

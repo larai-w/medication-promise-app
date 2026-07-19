@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a reproducible product or delivery defect
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: textarea
+    id: impact
+    attributes:
+      label: User and safety impact
+      description: Who is affected, and could this affect records, reminders, privacy, or medication-related wording?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour and evidence
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - P0 - Safety, privacy, or production continuity
+        - P1 - Core workflow unavailable or incorrect
+        - P2 - Degraded workflow with workaround
+        - P3 - Minor defect
+    validations:
+      required: true

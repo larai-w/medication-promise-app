@@ -1,5 +1,5 @@
-import { recordMedication } from './dynamodb.mjs'
-import { buildReminderText, formatReminderSummary, getReminderSchedule } from './config.mjs'
+import { getMedicationSettings, recordMedication } from './dynamodb.mjs'
+import { buildReminderText, formatReminderSummary, getMedicationName, getReminderSchedule } from './config.mjs'
 
 // ★ interaction-model.json のインテント名と完全一致させること
 const INTENT_TO_TIMING = {
@@ -89,7 +89,12 @@ function respond(text, shouldEndSession = true) {
   }
 }
 
-export function createHandler({ recordMedicationFn = recordMedication, fetchFn = fetch, env = process.env } = {}) {
+export function createHandler({
+  recordMedicationFn = recordMedication,
+  getMedicationSettingsFn = getMedicationSettings,
+  fetchFn = fetch,
+  env = process.env,
+} = {}) {
   return async (event) => {
   const requestType = event.request.type
   console.log('RequestType:', requestType)
@@ -123,13 +128,15 @@ export function createHandler({ recordMedicationFn = recordMedication, fetchFn =
       const { apiEndpoint, apiAccessToken } = event.context.System
       let result
       let schedule
+      let settings
       try {
-        schedule = getReminderSchedule(env)
+        settings = await getMedicationSettingsFn()
+        schedule = getReminderSchedule(env, settings.reminderSchedule)
         result = await setAllReminders(
           apiEndpoint,
           apiAccessToken,
           schedule,
-          env.MEDICATION_NAME ?? '',
+          getMedicationName(env, settings),
           fetchFn
         )
       } catch (err) {

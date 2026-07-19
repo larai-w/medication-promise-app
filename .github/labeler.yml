@@ -1,0 +1,24 @@
+area:web:
+  - changed-files:
+      - any-glob-to-any-file: 'web/**'
+
+area:alexa:
+  - changed-files:
+      - any-glob-to-any-file: 'alexa/**'
+      - any-glob-to-any-file: 'ask-resources.json'
+
+area:data:
+  - changed-files:
+      - any-glob-to-any-file: '**/*dynamodb*'
+      - any-glob-to-any-file: '**/*settings-store*'
+
+area:delivery:
+  - changed-files:
+      - any-glob-to-any-file: '.github/**'
+      - any-glob-to-any-file: 'web/sst.config.ts'
+      - any-glob-to-any-file: 'web/open-next.config.ts'
+
+area:docs:
+  - changed-files:
+      - any-glob-to-any-file: 'docs/**'
+      - any-glob-to-any-file: 'README.md'

@@ -37,6 +37,7 @@ test('night response is supportive without discouraging care', async () => {
 
 test('reminder permission denial returns an Alexa permission card', async () => {
   const handler = createHandler({
+    getMedicationSettingsFn: async () => ({}),
     fetchFn: async () => new Response('', { status: 403 }),
   })
   const response = await handler(intentEvent('SetRemindersIntent'))
@@ -56,6 +57,7 @@ test('reminders are replaced with generic, configurable messages', async () => {
   }
   const handler = createHandler({
     fetchFn,
+    getMedicationSettingsFn: async () => ({}),
     env: {
       REMINDER_SCHEDULE_JSON: JSON.stringify([
         { timing: '朝', hour: 7, min: 30 },
@@ -73,6 +75,32 @@ test('reminders are replaced with generic, configurable messages', async () => {
   for (const { init } of createCalls) {
     const body = JSON.parse(init.body)
     const text = body.alertInfo.spokenInfo.content[0].text
-    assert.doesNotMatch(text, /レボドパ/)
+    assert.doesNotMatch(text, /お薬A/)
   }
+})
+
+test('reminders use stored settings from DynamoDB when present', async () => {
+  const calls = []
+  const fetchFn = async (url, init = {}) => {
+    calls.push({ url, init })
+    if (!init.method) return Response.json({ alerts: [] })
+    return new Response('', { status: 200 })
+  }
+  const handler = createHandler({
+    fetchFn,
+    getMedicationSettingsFn: async () => ({
+      medicationName: 'お薬A',
+      reminderSchedule: [
+        { timing: '朝', time: '08:15' },
+        { timing: '夜9時', time: '22:00' },
+      ],
+    }),
+  })
+
+  const response = await handler(intentEvent('SetRemindersIntent'))
+  const createCalls = calls.filter(({ init }) => init.method === 'POST')
+
+  assert.equal(createCalls.length, 2)
+  assert.match(response.response.outputSpeech.text, /朝8時15分、夜9時22時/)
+  assert.match(JSON.parse(createCalls[0].init.body).alertInfo.spokenInfo.content[0].text, /お薬A/)
 })
