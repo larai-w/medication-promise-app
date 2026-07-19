@@ -1,27 +1,10 @@
-import { QueryCommand } from '@aws-sdk/lib-dynamodb'
 import { renderToBuffer } from '@react-pdf/renderer'
 import React from 'react'
 import { getDaysInMonth } from 'date-fns'
-import { docClient, TABLE_NAME } from '@/lib/dynamodb'
 import MedPdfDocument from '@/lib/MedPdfDocument'
-import type { DynamoRecord, MedicationRecord } from '@/types'
-import { encodeSK } from '@/lib/dynamodb'
 import { resolveRequestHousehold, unauthorizedHouseholdResponse } from '@/lib/household'
+import { listRecordsForHousehold } from '@/lib/household-records.ts'
 import { isValidMonth } from '@/lib/record-validation'
-
-function toApiRecord(item: DynamoRecord): MedicationRecord {
-  return {
-    id: encodeSK(item.SK),
-    userId: item.userId,
-    date: item.date,
-    time: item.time,
-    timing: item.timing,
-    source: item.source,
-    notes: item.notes,
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt,
-  }
-}
 
 // GET /api/records/pdf?month=YYYY-MM
 export async function GET(request: Request) {
@@ -47,18 +30,7 @@ export async function GET(request: Request) {
   const from = `${month}-01`
   const to = `${month}-${String(days).padStart(2, '0')}`
 
-  const result = await docClient.send(new QueryCommand({
-    TableName: TABLE_NAME,
-    KeyConditionExpression: 'PK = :pk AND SK BETWEEN :from AND :to',
-    ExpressionAttributeValues: {
-      ':pk': household.partitionKey,
-      ':from': `RECORD#${from}`,
-      ':to': `RECORD#${to}~`,
-    },
-    ScanIndexForward: true,
-  }))
-
-  const records = (result.Items as DynamoRecord[] ?? []).map(toApiRecord)
+  const records = await listRecordsForHousehold(household, { from, to })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const element = React.createElement(MedPdfDocument, { records, yearMonth: month, daysInMonth: days }) as any

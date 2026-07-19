@@ -1,11 +1,11 @@
 import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb'
-import { docClient, TABLE_NAME } from '@/lib/dynamodb'
-import type { AuthenticatedHousehold } from '@/lib/household'
+import { docClient, TABLE_NAME } from './dynamodb.ts'
+import type { AuthenticatedHousehold } from './household.ts'
 import {
   DEFAULT_MEDICATION_SETTINGS,
   parseMedicationSettingsInput,
   type MedicationSettings,
-} from '@/lib/settings'
+} from './settings.ts'
 
 const SETTINGS_SK = 'SETTINGS#medication'
 
@@ -24,8 +24,11 @@ function toSettings(item: unknown): MedicationSettings {
   return { ...parsed, updatedAt }
 }
 
-export async function getMedicationSettings(household: AuthenticatedHousehold): Promise<MedicationSettings> {
-  const result = await docClient.send(new GetCommand({
+export async function getMedicationSettings(
+  household: AuthenticatedHousehold,
+  client: { send(command: unknown): Promise<{ Item?: unknown }> } = docClient
+): Promise<MedicationSettings> {
+  const result = await client.send(new GetCommand({
     TableName: TABLE_NAME,
     Key: { PK: household.partitionKey, SK: SETTINGS_SK },
   }))
@@ -34,7 +37,8 @@ export async function getMedicationSettings(household: AuthenticatedHousehold): 
 
 export async function putMedicationSettings(
   settings: MedicationSettings,
-  household: AuthenticatedHousehold
+  household: AuthenticatedHousehold,
+  client: { send(command: unknown): Promise<unknown> } = docClient
 ): Promise<MedicationSettings> {
   const now = new Date().toISOString()
   const item: DynamoSettings = {
@@ -46,6 +50,6 @@ export async function putMedicationSettings(
     updatedAt: now,
   }
 
-  await docClient.send(new PutCommand({ TableName: TABLE_NAME, Item: item }))
+  await client.send(new PutCommand({ TableName: TABLE_NAME, Item: item }))
   return { medicationName: item.medicationName, reminderSchedule: item.reminderSchedule, updatedAt: now }
 }
