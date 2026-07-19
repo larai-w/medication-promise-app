@@ -1,5 +1,5 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb'
+import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb'
 import { randomUUID } from 'crypto'
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME ?? 'DrugAndOathRecords'
@@ -57,9 +57,105 @@ export async function getMedicationSettings() {
     },
   }))
 
-  if (!result.Item) return {}
+  return toMedicationSettings(result.Item)
+}
+
+function toMedicationSettings(item) {
+  if (!item) return {}
   return {
-    medicationName: typeof result.Item.medicationName === 'string' ? result.Item.medicationName : '',
-    reminderSchedule: Array.isArray(result.Item.reminderSchedule) ? result.Item.reminderSchedule : undefined,
+    medicationName: typeof item.medicationName === 'string' ? item.medicationName : '',
+    reminderSchedule: Array.isArray(item.reminderSchedule) ? item.reminderSchedule : undefined,
   }
+}
+
+// --- Household-scoped access (Issue #12) ---------------------------------
+//
+// These helpers write and read within a resolved household partition instead
+// of the legacy USER#<default-user> partition. `household` is the object
+// returned by resolveAlexaHousehold() in household.mjs and must carry a
+// `partitionKey` (HOUSEHOLD#<id>) and `householdId`. The DynamoDB client is
+// injectable so the data path is testable without hitting AWS.
+
+function assertHousehold(household) {
+  if (!household || typeof household.partitionKey !== 'string' || !household.partitionKey) {
+    throw new Error('recordMedicationForHousehold requires a resolved household')
+  }
+}
+
+export async function recordMedicationForHousehold(household, timing, { client = docClient } = {}) {
+  assertHousehold(household)
+  const { date, time, iso } = nowJST()
+  const uuid = randomUUID()
+  const sk   = `RECORD#${date}T${time}:00#${uuid}`
+
+  await client.send(new PutCommand({
+    TableName: TABLE_NAME,
+    Item: {
+      PK:        household.partitionKey,
+      SK:        sk,
+      userId:    household.householdId,
+      date,
+      time,
+      timing,
+      source:    'alexa',
+      createdAt: iso,
+    },
+  }))
+
+  return { date, time, timing }
+}
+
+export async function getMedicationSettingsForHousehold(household, { client = docClient } = {}) {
+  assertHousehold(household)
+  const result = await client.send(new GetCommand({
+    TableName: TABLE_NAME,
+    Key: {
+      PK: household.partitionKey,
+      SK: SETTINGS_SK,
+    },
+  }))
+
+  return toMedicationSettings(result.Item)
+}
+
+// --- Household membership lookup (Issue #12) ------------------------------
+//
+// Resolves the household memberships for a linked provider subject, following
+// the membership model in docs/ALEXA_ACCOUNT_LINKING_DESIGN.md:
+//
+//   PK = USER#<providerSubject>
+//   SK = MEMBERSHIP#<householdId>
+//
+// This is the adapter that resolveAlexaHousehold() calls as
+// `getMembershipsBySubject`. It returns [{ householdId, status }]. The caller
+// decides how zero / one / disabled / multiple memberships are handled.
+
+const MEMBERSHIP_SK_PREFIX = 'MEMBERSHIP#'
+
+export async function getHouseholdMembershipsBySubject(providerSubject, { client = docClient } = {}) {
+  if (typeof providerSubject !== 'string' || !providerSubject) {
+    throw new Error('getHouseholdMembershipsBySubject requires a provider subject')
+  }
+
+  const result = await client.send(new QueryCommand({
+    TableName: TABLE_NAME,
+    KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+    ExpressionAttributeValues: {
+      ':pk': `USER#${providerSubject}`,
+      ':prefix': MEMBERSHIP_SK_PREFIX,
+    },
+  }))
+
+  return (result.Items ?? [])
+    .map((item) => {
+      const householdId =
+        typeof item.householdId === 'string' && item.householdId
+          ? item.householdId
+          : typeof item.SK === 'string' && item.SK.startsWith(MEMBERSHIP_SK_PREFIX)
+            ? item.SK.slice(MEMBERSHIP_SK_PREFIX.length)
+            : undefined
+      const status = typeof item.status === 'string' ? item.status : undefined
+      return { householdId, status }
+    })
+    .filter((membership) => Boolean(membership.householdId))
 }

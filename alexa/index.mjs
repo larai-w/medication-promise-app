@@ -1,5 +1,23 @@
-import { getMedicationSettings, recordMedication } from './dynamodb.mjs'
+import {
+  getMedicationSettings,
+  recordMedication,
+  getMedicationSettingsForHousehold,
+  recordMedicationForHousehold,
+  getHouseholdMembershipsBySubject,
+} from './dynamodb.mjs'
+import { AlexaHouseholdError, resolveAlexaHousehold } from './household.mjs'
+import { makeCognitoTokenVerifier } from './cognito.mjs'
 import { buildReminderText, formatReminderSummary, getMedicationName, getReminderSchedule } from './config.mjs'
+
+// Default household resolver: verify the linked Cognito token, then resolve the
+// caller's household membership. Both dependencies are built from environment
+// configuration; see household.mjs and cognito.mjs.
+function defaultResolveHousehold(event, env) {
+  return resolveAlexaHousehold(event, {
+    verifyLinkedToken: makeCognitoTokenVerifier(env),
+    getMembershipsBySubject: (subject) => getHouseholdMembershipsBySubject(subject),
+  })
+}
 
 // ★ interaction-model.json のインテント名と完全一致させること
 const INTENT_TO_TIMING = {
@@ -90,11 +108,20 @@ function respond(text, shouldEndSession = true) {
 }
 
 export function createHandler({
+  mode = process.env.ALEXA_HOUSEHOLD_MODE ?? 'legacy',
   recordMedicationFn = recordMedication,
   getMedicationSettingsFn = getMedicationSettings,
+  recordMedicationForHouseholdFn = recordMedicationForHousehold,
+  getMedicationSettingsForHouseholdFn = getMedicationSettingsForHousehold,
+  resolveHouseholdFn,
   fetchFn = fetch,
   env = process.env,
 } = {}) {
+  // In 'household' mode the skill resolves the linked account's household before
+  // any data access; otherwise it uses the legacy single-household path.
+  const isLinked = mode === 'household'
+  const resolveHousehold = resolveHouseholdFn ?? ((event) => defaultResolveHousehold(event, env))
+
   return async (event) => {
   const requestType = event.request.type
   console.log('RequestType:', requestType)
@@ -114,8 +141,14 @@ export function createHandler({
     const timing = INTENT_TO_TIMING[intentName]
     if (timing) {
       try {
-        await recordMedicationFn(timing)
+        if (isLinked) {
+          const household = await resolveHousehold(event)
+          await recordMedicationForHouseholdFn(household, timing)
+        } else {
+          await recordMedicationFn(timing)
+        }
       } catch (err) {
+        if (err instanceof AlexaHouseholdError) return respond(err.speech)
         console.error('DynamoDB error:', err)
         return respond('申し訳ありません、記録中にエラーが発生しました。もう一度お試しください。')
       }
@@ -130,7 +163,9 @@ export function createHandler({
       let schedule
       let settings
       try {
-        settings = await getMedicationSettingsFn()
+        settings = isLinked
+          ? await getMedicationSettingsForHouseholdFn(await resolveHousehold(event))
+          : await getMedicationSettingsFn()
         schedule = getReminderSchedule(env, settings.reminderSchedule)
         result = await setAllReminders(
           apiEndpoint,
@@ -140,6 +175,7 @@ export function createHandler({
           fetchFn
         )
       } catch (err) {
+        if (err instanceof AlexaHouseholdError) return respond(err.speech)
         console.error('Reminder error:', err)
         return respond('申し訳ありません、リマインダーの設定中にエラーが発生しました。もう一度お試しください。')
       }

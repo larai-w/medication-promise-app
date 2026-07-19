@@ -143,3 +143,6 @@ Before inviting any household:
 Proceed with Web household identity and DynamoDB partition isolation before any
 invitation-only beta. Keep Alexa account linking as the next dependent release gate
 in Issue #12.
+
+The first release-gate design for that Alexa work is documented in
+[Alexa account linking and household membership design](ALEXA_ACCOUNT_LINKING_DESIGN.md).
