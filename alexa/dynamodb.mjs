@@ -1,5 +1,5 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb'
+import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb'
 import { randomUUID } from 'crypto'
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME ?? 'DrugAndOathRecords'
@@ -116,4 +116,46 @@ export async function getMedicationSettingsForHousehold(household, { client = do
   }))
 
   return toMedicationSettings(result.Item)
+}
+
+// --- Household membership lookup (Issue #12) ------------------------------
+//
+// Resolves the household memberships for a linked provider subject, following
+// the membership model in docs/ALEXA_ACCOUNT_LINKING_DESIGN.md:
+//
+//   PK = USER#<providerSubject>
+//   SK = MEMBERSHIP#<householdId>
+//
+// This is the adapter that resolveAlexaHousehold() calls as
+// `getMembershipsBySubject`. It returns [{ householdId, status }]. The caller
+// decides how zero / one / disabled / multiple memberships are handled.
+
+const MEMBERSHIP_SK_PREFIX = 'MEMBERSHIP#'
+
+export async function getHouseholdMembershipsBySubject(providerSubject, { client = docClient } = {}) {
+  if (typeof providerSubject !== 'string' || !providerSubject) {
+    throw new Error('getHouseholdMembershipsBySubject requires a provider subject')
+  }
+
+  const result = await client.send(new QueryCommand({
+    TableName: TABLE_NAME,
+    KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+    ExpressionAttributeValues: {
+      ':pk': `USER#${providerSubject}`,
+      ':prefix': MEMBERSHIP_SK_PREFIX,
+    },
+  }))
+
+  return (result.Items ?? [])
+    .map((item) => {
+      const householdId =
+        typeof item.householdId === 'string' && item.householdId
+          ? item.householdId
+          : typeof item.SK === 'string' && item.SK.startsWith(MEMBERSHIP_SK_PREFIX)
+            ? item.SK.slice(MEMBERSHIP_SK_PREFIX.length)
+            : undefined
+      const status = typeof item.status === 'string' ? item.status : undefined
+      return { householdId, status }
+    })
+    .filter((membership) => Boolean(membership.householdId))
 }
