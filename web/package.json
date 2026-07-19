@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --experimental-strip-types --test",
+    "migrate:household:dry-run": "node scripts/migrate-default-user-to-household.mjs",
     "deploy": "sst deploy --stage production",
     "sst:dev": "sst dev",
     "sst:remove": "sst remove --stage production"
