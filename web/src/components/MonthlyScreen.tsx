@@ -84,25 +84,25 @@ export default function MonthlyScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-indigo-700 text-white px-4 py-4 flex items-center justify-between sticky top-0 z-10 shadow-md">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors">
+      <header className="bg-indigo-700 dark:bg-indigo-900 text-white px-4 py-4 flex items-center justify-between sticky top-0 z-10 shadow-md">
         <h1 className="text-xl font-bold tracking-wide">おくすりの約束</h1>
         <div className="flex items-center gap-2">
-          <Link href="/" className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors">
+          <Link href="/" className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors" aria-label="メイン画面">
             メイン画面
           </Link>
-          <Link href="/settings" className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors">
+          <Link href="/settings" className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors" aria-label="設定">
             設定
           </Link>
           <form action="/api/access/logout" method="post">
-            <button type="submit" className="text-xs text-white/80 hover:text-white px-2 py-1.5">終了</button>
+            <button type="submit" className="text-xs text-white/80 hover:text-white px-2 py-1.5" aria-label="ログアウト">終了</button>
           </form>
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6">
         {error && (
-          <div role="alert" className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+          <div role="alert" className="mb-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm">
             {error}
           </div>
         )}
@@ -110,14 +110,16 @@ export default function MonthlyScreen() {
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={() => setCurrentDate(d => subMonths(d, 1))}
-            className="px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium transition-colors"
+            className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium transition-colors"
+            aria-label="前月"
           >
             ← 前月
           </button>
-          <h2 className="text-lg font-bold text-gray-800">{monthLabel}</h2>
+          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">{monthLabel}</h2>
           <button
             onClick={() => setCurrentDate(d => addMonths(d, 1))}
-            className="px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium transition-colors"
+            className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium transition-colors"
+            aria-label="次月"
           >
             次月 →
           </button>
@@ -136,20 +138,23 @@ export default function MonthlyScreen() {
 
         {/* Monthly table */}
         {loading ? (
-          <p className="text-gray-400 text-sm py-8 text-center">読み込み中...</p>
+          <div className="flex items-center justify-center py-8" role="status">
+            <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" aria-label="読み込み中" />
+            <span className="ml-3 text-gray-400 dark:text-gray-500 text-sm">読み込み中...</span>
+          </div>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-indigo-700 text-white">
+                  <tr className="bg-indigo-700 dark:bg-indigo-900 text-white">
                     <th className="px-3 py-3 text-left font-medium w-20">日付</th>
                     {TIMINGS.map(t => (
                       <th key={t} className="px-2 py-3 text-center font-medium">{t}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                   {days.map(({ day, dateStr, weekday }, i) => {
                     const dayData = grid[dateStr] ?? {}
                     const isSunday = weekday === '日'
@@ -158,14 +163,14 @@ export default function MonthlyScreen() {
                       <tr
                         key={dateStr}
                         className={
-                          i % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                          i % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800/60'
                         }
                       >
                         <td className="px-3 py-2.5 whitespace-nowrap">
                           <span className={
-                            isSunday ? 'text-red-500 font-medium' :
-                            isSaturday ? 'text-blue-500 font-medium' :
-                            'text-gray-700'
+                            isSunday ? 'text-red-500 dark:text-red-400 font-medium' :
+                            isSaturday ? 'text-blue-500 dark:text-blue-400 font-medium' :
+                            'text-gray-700 dark:text-gray-300'
                           }>
                             {day}日 ({weekday})
                           </span>
@@ -174,11 +179,11 @@ export default function MonthlyScreen() {
                           <td key={t} className="px-2 py-2.5 text-center">
                             {dayData[t] ? (
                               <span className="inline-flex flex-col items-center leading-tight">
-                                <span className="text-green-600 font-bold text-base">✓</span>
-                                <span className="text-gray-400 text-xs">{dayData[t].time}</span>
+                                <span className="text-green-600 dark:text-green-400 font-bold text-base">✓</span>
+                                <span className="text-gray-400 dark:text-gray-500 text-xs">{dayData[t].time}</span>
                               </span>
                             ) : (
-                              <span className="text-gray-200">—</span>
+                              <span className="text-gray-200 dark:text-gray-600">—</span>
                             )}
                           </td>
                         ))}
@@ -193,22 +198,22 @@ export default function MonthlyScreen() {
 
         {/* Summary */}
         {!loading && (
-          <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-500">
+          <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
             <span>
-              服薬回数: <strong className="text-gray-800">{records.length}回</strong>
+              服薬回数: <strong className="text-gray-800 dark:text-gray-200">{records.length}回</strong>
             </span>
             <span>
-              服薬日数: <strong className="text-gray-800">
+              服薬日数: <strong className="text-gray-800 dark:text-gray-200">
                 {new Set(records.map(r => r.date)).size}日
               </strong>
             </span>
             <span>
               完了率: <strong className={
                 records.length / (daysInMonth * 5) >= 0.8
-                  ? 'text-green-600'
+                  ? 'text-green-600 dark:text-green-400'
                   : records.length / (daysInMonth * 5) >= 0.5
-                    ? 'text-yellow-600'
-                    : 'text-red-500'
+                    ? 'text-yellow-600 dark:text-yellow-400'
+                    : 'text-red-500 dark:text-red-400'
               }>
                 {Math.round(records.length / (daysInMonth * 5) * 100)}%
               </strong>

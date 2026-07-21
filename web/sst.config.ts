@@ -38,7 +38,7 @@ export default $config({
         MVP_ACCESS_CODE: mvpAccessCode.value,
         MVP_SESSION_SECRET: mvpSessionSecret.value,
       },
-      // サーバー Lambda に既存 DynamoDB テーブルへの最小権限を付与
+      // サーバー Lambda に既存 DynamoDB テーブルへの最小権限を付与 + Bedrock
       permissions: [
         {
           actions: [
@@ -50,6 +50,12 @@ export default $config({
             'dynamodb:BatchWriteItem',
           ],
           resources: [tableArn, `${tableArn}/index/*`],
+        },
+        {
+          actions: [
+            'bedrock:InvokeModel',
+          ],
+          resources: ['arn:aws:bedrock:ap-northeast-1::foundation-model/anthropic.claude-3-haiku-20240307-v1:0'],
         },
       ],
     })
