@@ -1,0 +1,19 @@
+#!/bin/sh
+# Local first-line defense: block internal/private files from being committed to
+# this PUBLIC repo. Mirrors the required CI check (private-files) so mistakes are
+# caught before push, not only at CI.
+#
+# Enable once per clone:
+#   git config core.hooksPath .githooks
+#
+# Keep strategy / growth / roadmap / handoff / session / task / draft notes in the
+# private workspace (veai-private), never here.
+
+if command -v node >/dev/null 2>&1; then
+  node scripts/check-publication-boundary.mjs || {
+    echo "pre-commit: publication boundary check failed — keep internal files in the private workspace (veai-private)." >&2
+    exit 1
+  }
+else
+  echo "pre-commit: node not found; skipping publication boundary check (CI still enforces it)." >&2
+fi
