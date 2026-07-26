@@ -31,9 +31,13 @@ private workspace. Do not force-add them with `git add -f`.
 3. Confirm no ignored file was force-added and no private value appears in a public file.
 4. If uncertain, do not commit or push until the file is reviewed by the repository owner.
 
-CI runs `node scripts/check-publication-boundary.mjs` and rejects known private
-paths if they are force-added. This guard supplements review; it does not make a
-renamed or newly introduced private file safe to publish.
+CI runs `node scripts/check-publication-boundary.mjs` (required check `private-files`)
+and rejects private paths. The same script also runs locally as a pre-commit hook —
+enable it once per clone with `git config core.hooksPath .githooks`. The guard blocks
+both exact known names and generalized keyword patterns (e.g. `*STRATEGY*`, `*ROADMAP*`,
+`*GROWTH*`, `*HANDOFF*`, `*PRICING*`, `SESSION_NOTE*`, `WORKLOG*`, `BLOG_DRAFT*` markdown),
+so renamed or newly named internal notes are caught too. It supplements review; it does
+not make a genuinely new kind of private file safe to publish.
 
 Removing a file in a later commit does not remove it from Git history. If private
 material was previously pushed, assess whether repository history must be rewritten
