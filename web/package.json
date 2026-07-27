@@ -15,6 +15,7 @@
     "sst:remove": "sst remove --stage production"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1091.0",
     "@aws-sdk/client-dynamodb": "^3.1072.0",
     "@aws-sdk/lib-dynamodb": "^3.1072.0",
     "@react-pdf/renderer": "^4.5.1",
