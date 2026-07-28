@@ -70,6 +70,34 @@ test('linked mode reads reminder settings from the resolved household', async ()
   assert.match(response.response.outputSpeech.text, /服薬リマインダー/)
 })
 
+test('linked mode never falls back to the legacy default-user settings path', async () => {
+  // Issue #25: in household mode no record or settings access may touch the
+  // legacy USER#default-user helpers. The record side is asserted above; this
+  // covers SetRemindersIntent's settings read.
+  const legacySettingsCalls = []
+  const householdSettingsCalls = []
+  const handler = createHandler({
+    mode: 'household',
+    resolveHouseholdFn: async () => HOUSEHOLD,
+    getMedicationSettingsFn: async () => {
+      legacySettingsCalls.push('legacy')
+      return {}
+    },
+    getMedicationSettingsForHouseholdFn: async (household) => {
+      householdSettingsCalls.push(household)
+      return { medicationName: 'お薬A', reminderSchedule: [{ timing: '朝', time: '08:15' }] }
+    },
+    fetchFn: async (url, init = {}) => {
+      if (!init.method) return Response.json({ alerts: [] })
+      return new Response('', { status: 200 })
+    },
+  })
+
+  await handler(linkedIntent('SetRemindersIntent'))
+  assert.deepEqual(householdSettingsCalls, [HOUSEHOLD]) // read from the resolved household
+  assert.deepEqual(legacySettingsCalls, []) // legacy default-user reader never called
+})
+
 test('reminder setup fails closed when the household is unresolved', async () => {
   const handler = createHandler({
     mode: 'household',
