@@ -15,8 +15,13 @@ jobs:
   add-to-project:
     runs-on: ubuntu-latest
     if: vars.PROJECT_URL != ''
+    env:
+      PROJECTS_TOKEN: ${{ secrets.PROJECTS_TOKEN }}
     steps:
-      - uses: actions/add-to-project@v2
+      # PROJECTS_TOKEN が未設定のときはスキップ(毎回失敗してメールが飛ぶのを防ぐ)。
+      # トークンを設定すれば自動で有効化される。
+      - if: env.PROJECTS_TOKEN != ''
+        uses: actions/add-to-project@v2
         with:
           project-url: ${{ vars.PROJECT_URL }}
           github-token: ${{ secrets.PROJECTS_TOKEN }}
