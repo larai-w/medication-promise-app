@@ -1,0 +1,121 @@
+{
+	"$schema": "https://raw.githubusercontent.com/larai-w/veai-jp-web/main/schemas/product.schema.json",
+	"schemaVersion": 1,
+	"slug": "medication-promise",
+	"name": "Medication Promise",
+	"portfolioRole": "medication-capture",
+	"audiences": [
+		"family-caregiver",
+		"care-recipient",
+		"care-professional",
+		"technical-reviewer"
+	],
+	"availability": {
+		"stage": "private-household-mvp",
+		"access": "private",
+		"summary": {
+			"en": "Working private single-household MVP; broader household onboarding and Alexa account-linking verification are not complete.",
+			"ja": "単一世帯で稼働中の非公開MVPです。複数世帯向け導入とAlexaアカウント連携の実機確認は未完了です。"
+		}
+	},
+	"evidenceLevel": "implemented",
+	"canonicalRepository": "https://github.com/larai-w/medication-promise-app",
+	"publicUrls": {
+		"productPage": "https://veai.jp/apps/medication-promise/",
+		"project": "https://github.com/users/larai-w/projects/9",
+		"app": "https://kusuri.veai.jp"
+	},
+	"lastVerified": "2026-07-31",
+	"site": {
+		"status": "in-development",
+		"order": 4,
+		"icon": "💊",
+		"themeColor": "#fde7ee",
+		"techStack": [
+			"Amazon Alexa",
+			"Next.js",
+			"AWS Lambda",
+			"Amazon DynamoDB"
+		],
+		"en": {
+			"name": "Medication Promise",
+			"tagline": "Medication records by tap or Alexa for one private household",
+			"description": "A working private-household MVP for medication recording, reminders, history, and monthly PDF export. Household-scoped identity work is in progress; it is not a public multi-household service."
+		},
+		"ja": {
+			"name": "おくすりの約束",
+			"tagline": "1世帯の服薬記録を、タップとAlexaで",
+			"description": "服薬記録、リマインダー、履歴、月次PDFが動作する単一世帯向け非公開MVPです。世帯単位の本人確認は対応中で、一般公開の複数世帯サービスではありません。"
+		}
+	},
+	"capabilities": [
+		{
+			"id": "web-recording-and-pdf",
+			"label": {
+				"en": "Web recording, correction, history, and monthly PDF",
+				"ja": "Webでの記録、訂正、履歴、月次PDF"
+			},
+			"status": "implemented",
+			"evidenceUrls": [
+				"https://github.com/larai-w/medication-promise-app#product-status"
+			]
+		},
+		{
+			"id": "alexa-recording-and-reminders",
+			"label": {
+				"en": "Alexa voice recording and reminders for the current household",
+				"ja": "現行世帯向けAlexa音声記録とリマインダー"
+			},
+			"status": "implemented",
+			"evidenceUrls": [
+				"https://github.com/larai-w/medication-promise-app/tree/main/alexa"
+			]
+		},
+		{
+			"id": "household-data-boundary",
+			"label": {
+				"en": "Household-scoped Web data boundary",
+				"ja": "Webデータの世帯単位境界"
+			},
+			"status": "prototype",
+			"evidenceUrls": [
+				"https://github.com/larai-w/medication-promise-app/blob/main/docs/HOUSEHOLD_IDENTITY_DESIGN.md"
+			]
+		},
+		{
+			"id": "alexa-account-linking",
+			"label": {
+				"en": "Alexa account linking and household resolution",
+				"ja": "Alexaアカウント連携と世帯解決"
+			},
+			"status": "prototype",
+			"evidenceUrls": [
+				"https://github.com/larai-w/medication-promise-app/issues/12",
+				"https://github.com/larai-w/medication-promise-app/blob/main/docs/ALEXA_ACCOUNT_LINKING_DESIGN.md"
+			]
+		},
+		{
+			"id": "gogo-skin",
+			"label": {
+				"en": "Optional playful GO!GO! recording skin",
+				"ja": "任意のおくすりde GO!GO!記録スキン"
+			},
+			"status": "planned",
+			"evidenceUrls": [
+				"https://github.com/larai-w/medication-promise-app/issues/34"
+			]
+		}
+	],
+	"boundaries": {
+		"en": [
+			"Private access is required; public self-service signup is not available.",
+			"The app records medication events and reminders but does not decide whether medication should be taken.",
+			"GO!GO! is planned and must not be described as an implemented skin."
+		],
+		"ja": [
+			"利用には非公開アクセスが必要で、一般向けセルフ登録は提供していません。",
+			"服薬イベントとリマインダーを記録しますが、薬を飲むべきかは判断しません。",
+			"おくすりde GO!GO!は計画段階であり、実装済みとは表現しません。"
+		]
+	}
+}

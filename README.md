@@ -22,8 +22,8 @@ This project demonstrates end-to-end Technical PM capability in a HealthTech con
 | Web recording, correction, history, and monthly PDF | Working household MVP |
 | Alexa voice recording and daily reminders | Working household MVP |
 | Protected medication name and reminder settings | Deployed household MVP |
-| Per-household identity and data isolation | Planned |
-| Alexa account linking | Planned |
+| Household-scoped Web data boundary | Prototype deployed in household mode; broader identity verification remains gated |
+| Alexa account linking and household resolution | Prototype code and automated tests; skill configuration and device verification remain |
 | Public availability | Not released |
 
 Production app: [kusuri.veai.jp](https://kusuri.veai.jp) (private access required)
