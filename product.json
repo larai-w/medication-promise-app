@@ -25,7 +25,7 @@
 		"project": "https://github.com/users/larai-w/projects/9",
 		"app": "https://kusuri.veai.jp"
 	},
-	"lastVerified": "2026-07-31",
+	"lastVerified": "2026-08-01",
 	"site": {
 		"status": "in-development",
 		"order": 4,
@@ -40,12 +40,12 @@
 		"en": {
 			"name": "Medication Promise",
 			"tagline": "Medication records by tap or Alexa for one private household",
-			"description": "A working private-household MVP for medication recording, reminders, history, and monthly PDF export. Household-scoped identity work is in progress; it is not a public multi-household service."
+			"description": "A working private-household MVP for medication recording, reminders, history, and monthly PDF export. Its household-scoped Web identity boundary is deployed and verified; it is not a public multi-household service."
 		},
 		"ja": {
 			"name": "おくすりの約束",
 			"tagline": "1世帯の服薬記録を、タップとAlexaで",
-			"description": "服薬記録、リマインダー、履歴、月次PDFが動作する単一世帯向け非公開MVPです。世帯単位の本人確認は対応中で、一般公開の複数世帯サービスではありません。"
+			"description": "服薬記録、リマインダー、履歴、月次PDFが動作する単一世帯向け非公開MVPです。Webの世帯単位認証境界はデプロイ・検証済みですが、一般公開の複数世帯サービスではありません。"
 		}
 	},
 	"capabilities": [
@@ -77,9 +77,10 @@
 				"en": "Household-scoped Web data boundary",
 				"ja": "Webデータの世帯単位境界"
 			},
-			"status": "prototype",
+			"status": "implemented",
 			"evidenceUrls": [
-				"https://github.com/larai-w/medication-promise-app/blob/main/docs/HOUSEHOLD_IDENTITY_DESIGN.md"
+				"https://github.com/larai-w/medication-promise-app/blob/main/docs/HOUSEHOLD_IDENTITY_DESIGN.md",
+				"https://github.com/larai-w/medication-promise-app/pull/38"
 			]
 		},
 		{

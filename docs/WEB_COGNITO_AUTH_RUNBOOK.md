@@ -80,6 +80,23 @@ the Web Cognito client has no client secret.
 Public completion evidence records pass/fail and links only. Private values and raw
 logs remain outside the repository.
 
+## Production acceptance
+
+Production acceptance passed on 2026-08-01 using a temporary synthetic invited
+identity and an empty synthetic household:
+
+- Unauthenticated pages redirected to login and protected APIs returned `401` with
+  `no-store`.
+- Hosted UI authorization code + PKCE completed and issued the application session.
+- Authenticated settings, record create/read/update/delete, and PDF export passed.
+- Removing the synthetic membership caused the existing session to fail closed with
+  `403`; logout then returned the protected API to `401`.
+- The synthetic Cognito identity, membership, settings, and records were deleted, and
+  their absence was verified after the test.
+
+No real household identity, medication setting, record, identifier, token, or raw log
+was used as public evidence.
+
 ## Rollback
 
 1. Stop invitations and do not delete membership or household data.

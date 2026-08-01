@@ -19,7 +19,7 @@ Primary personas:
 | Person taking medication | Record a completed medication timing without navigating a phone | Voice recognition must be short and forgiving |
 | Family caregiver | See today's state and correct mistakes quickly | The workflow competes with other care work |
 | Maintainer | Change the system without losing household records or reminders | Production state already existed before formalisation |
-| Future beta household | Use the product without seeing another household's records | The identity boundary is automated-test verified; production sign-in and beta operations remain gated |
+| Future beta household | Use the product without seeing another household's records | The Web identity boundary is production-verified; broader beta operations remain gated |
 
 Facility staff were explored in the original roadmap, then removed from the near-term scope. A single-household prototype does not provide the identity, roles, auditability, or operational controls required for facility use.
 
@@ -83,7 +83,7 @@ Work was prioritised using a simple risk-adjusted sequence:
 | P2 | Does this improve usability without changing the safety boundary? | UI polish, reporting improvements |
 | P3 | Is this valuable only after identity and validation exist? | Facility dashboard, broad public promotion |
 
-This ordering deliberately placed tenant identity ahead of growth features. Adding charts or notifications would not have solved the central public-release risk while requests still resolved through one configured household identity. That code path has now been replaced for Cognito mode; production sign-in acceptance remains required before the release gate is closed.
+This ordering deliberately placed tenant identity ahead of growth features. Adding charts or notifications would not have solved the central public-release risk while requests still resolved through one configured household identity. That code path has now been replaced for Cognito mode and verified in production with an isolated synthetic household.
 
 ## Decisions And Trade-offs
 
@@ -97,7 +97,7 @@ AWS Amplify's managed SSR path did not support the project's Next.js version. Op
 
 ### Treat an access code as a temporary gate
 
-The access code materially improved the private household deployment but was not described as multi-user authentication. It is now retained only as a controlled rollback path. The Cognito path resolves an invited identity to exactly one active household on every API request, while production sign-in acceptance remains a release requirement.
+The access code materially improved the private household deployment but was not described as multi-user authentication. It is now retained only as a controlled rollback path. The Cognito path resolves an invited identity to exactly one active household on every API request, and its production flow has been verified without using household data as test evidence.
 
 ### Keep destructive reminder testing human-controlled
 
@@ -165,7 +165,7 @@ A doctoral proposal would require ethics review, informed consent, a defensible 
 
 ## Current Release Decision
 
-The product is suitable for continued use in the existing household and for development storytelling. It is not ready for unrestricted public use. The Web household identity boundary and automated isolation checks are implemented, but production Hosted UI sign-in acceptance is still required. The broader go/no-go gate also requires Alexa account-linking verification, deletion and recovery operations, and a small invitation-only validation period.
+The product is suitable for continued use in the existing household and for development storytelling. It is not ready for unrestricted public use. The Web household identity boundary, automated isolation checks, and production Hosted UI flow are verified. The broader go/no-go gate still requires Alexa account-linking verification, deletion and recovery operations, and a small invitation-only validation period.
 
 This decision is the clearest demonstration of the PM approach used here: progress is measured by validated capability and controlled risk, not by how many features can be called finished.
 
