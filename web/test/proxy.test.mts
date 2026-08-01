@@ -2,18 +2,21 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { NextRequest } from 'next/server.js'
 import { createAccessToken, MVP_ACCESS_COOKIE } from '../src/lib/mvp-access.ts'
+import { createWebSessionToken, WEB_SESSION_COOKIE } from '../src/lib/cognito-session.ts'
 import { proxy } from '../src/proxy.ts'
 
 const originalEnv = {
   NODE_ENV: process.env.NODE_ENV,
   MVP_ACCESS_CODE: process.env.MVP_ACCESS_CODE,
   MVP_SESSION_SECRET: process.env.MVP_SESSION_SECRET,
+  WEB_AUTH_MODE: process.env.WEB_AUTH_MODE,
 }
 
 test.before(() => {
   process.env.NODE_ENV = 'production'
   process.env.MVP_ACCESS_CODE = 'family-access-code-1234'
   process.env.MVP_SESSION_SECRET = 'a-session-secret-that-is-longer-than-thirty-two-characters'
+  process.env.WEB_AUTH_MODE = 'mvp'
 })
 
 test.after(() => {
@@ -44,4 +47,19 @@ test('legal pages remain public and a signed cookie unlocks protected pages', as
   })
   const authorizedResponse = await proxy(request)
   assert.equal(authorizedResponse.status, 200)
+})
+
+test('Cognito mode accepts only a valid encrypted application session', async () => {
+  process.env.WEB_AUTH_MODE = 'cognito'
+  const unauthorized = await proxy(new NextRequest('https://example.test/api/settings'))
+  assert.equal(unauthorized.status, 401)
+
+  const token = await createWebSessionToken('provider-user-a')
+  const request = new NextRequest('https://example.test/api/settings', {
+    headers: { cookie: `${WEB_SESSION_COOKIE}=${token}` },
+  })
+  const authorized = await proxy(request)
+  assert.equal(authorized.status, 200)
+
+  process.env.WEB_AUTH_MODE = 'mvp'
 })

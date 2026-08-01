@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getWebAuthMode } from '@/lib/auth-mode'
 import {
   createAccessToken,
   getAccessConfigurationError,
@@ -8,6 +9,10 @@ import {
 } from '@/lib/mvp-access'
 
 export async function POST(request: Request) {
+  if (getWebAuthMode() !== 'mvp') {
+    return Response.json({ error: 'このログイン方法は利用できません' }, { status: 404 })
+  }
+
   const origin = request.headers.get('origin')
   if (origin && origin !== new URL(request.url).origin) {
     return Response.json({ error: '不正なリクエストです' }, { status: 403 })

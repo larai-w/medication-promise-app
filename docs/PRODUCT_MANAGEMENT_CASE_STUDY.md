@@ -19,7 +19,7 @@ Primary personas:
 | Person taking medication | Record a completed medication timing without navigating a phone | Voice recognition must be short and forgiving |
 | Family caregiver | See today's state and correct mistakes quickly | The workflow competes with other care work |
 | Maintainer | Change the system without losing household records or reminders | Production state already existed before formalisation |
-| Future beta household | Use the product without seeing another household's records | Identity and tenant isolation are not yet implemented |
+| Future beta household | Use the product without seeing another household's records | The identity boundary is automated-test verified; production sign-in and beta operations remain gated |
 
 Facility staff were explored in the original roadmap, then removed from the near-term scope. A single-household prototype does not provide the identity, roles, auditability, or operational controls required for facility use.
 
@@ -64,6 +64,14 @@ The MVP was organised around four outcomes rather than a feature inventory:
 - Alexa reads the current settings when reminders are recreated.
 - ASK CLI/SMAPI automation for the Japanese interaction model and manifest.
 
+### Increment 5: Household identity boundary
+
+- Cognito authorization code flow with PKCE and a separate public Web client.
+- Encrypted, expiring application sessions that contain only a verified provider subject.
+- Per-request membership resolution before records, PDF, or settings data access.
+- Household-derived DynamoDB partitions and negative isolation tests across two synthetic households.
+- Migration and rollback procedures that preserve the existing household record.
+
 ## Prioritisation
 
 Work was prioritised using a simple risk-adjusted sequence:
@@ -75,7 +83,7 @@ Work was prioritised using a simple risk-adjusted sequence:
 | P2 | Does this improve usability without changing the safety boundary? | UI polish, reporting improvements |
 | P3 | Is this valuable only after identity and validation exist? | Facility dashboard, broad public promotion |
 
-This ordering deliberately placed tenant identity ahead of growth features. Adding charts or notifications would not solve the central public-release risk: every request still resolves to one household identity.
+This ordering deliberately placed tenant identity ahead of growth features. Adding charts or notifications would not have solved the central public-release risk while requests still resolved through one configured household identity. That code path has now been replaced for Cognito mode; production sign-in acceptance remains required before the release gate is closed.
 
 ## Decisions And Trade-offs
 
@@ -89,7 +97,7 @@ AWS Amplify's managed SSR path did not support the project's Next.js version. Op
 
 ### Treat an access code as a temporary gate
 
-The access code materially improved the private household deployment but was not described as multi-user authentication. The next release gate remains per-household identity and data isolation.
+The access code materially improved the private household deployment but was not described as multi-user authentication. It is now retained only as a controlled rollback path. The Cognito path resolves an invited identity to exactly one active household on every API request, while production sign-in acceptance remains a release requirement.
 
 ### Keep destructive reminder testing human-controlled
 
@@ -109,7 +117,7 @@ The PM role in this project included architecture-level decisions because produc
 | Recover the Web deployment | Amplify managed SSR did not support the chosen Next.js version | Move to OpenNext/SST on CloudFront, Lambda, and S3 | A failed path was replaced without downgrading the product or hiding the failure |
 | Remove credential ambiguity | Lambda temporary credentials were broken by manual partial credential injection | Restore the AWS SDK default credential chain and least-privilege runtime role | Security and operability were handled as delivery outcomes |
 | Separate public content from the app | The main site and private household app have different access and release needs | Keep product content on `veai.jp`; deploy the application at `kusuri.veai.jp` | Brand, cookie boundary, blast radius, and deployment ownership were considered together |
-| Delay multi-household promotion | A fixed household key cannot provide tenant isolation | Make identity, partitioning, account linking, and negative isolation tests the next release gate | Growth was subordinated to a verifiable data boundary |
+| Delay multi-household promotion | A fixed household key cannot provide tenant isolation | Implement Cognito identity, membership-based partitioning, and negative isolation tests before invitation testing | Growth was subordinated to a verifiable data boundary |
 
 This is the profile the repository is intended to evidence: a Technical Product Manager who can move between user outcomes, architecture diagrams, cloud failure modes, delivery controls, and release decisions without treating them as separate conversations.
 
@@ -157,9 +165,10 @@ A doctoral proposal would require ethics review, informed consent, a defensible 
 
 ## Current Release Decision
 
-The product is suitable for continued use in the existing household and for development storytelling. It is not ready for unrestricted public use. The next go/no-go gate requires per-household identity, Alexa account linking, isolation tests, deletion/recovery operations, and a small invitation-only validation period.
+The product is suitable for continued use in the existing household and for development storytelling. It is not ready for unrestricted public use. The Web household identity boundary and automated isolation checks are implemented, but production Hosted UI sign-in acceptance is still required. The broader go/no-go gate also requires Alexa account-linking verification, deletion and recovery operations, and a small invitation-only validation period.
 
 This decision is the clearest demonstration of the PM approach used here: progress is measured by validated capability and controlled risk, not by how many features can be called finished.
 
-The first release-gate design for that next phase is documented in
-[Household identity and data isolation design](HOUSEHOLD_IDENTITY_DESIGN.md).
+The Web release design and operating procedure are documented in
+[Household identity and data isolation design](HOUSEHOLD_IDENTITY_DESIGN.md) and the
+[Web Cognito household authentication runbook](WEB_COGNITO_AUTH_RUNBOOK.md).

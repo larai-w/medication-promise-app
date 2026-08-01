@@ -18,6 +18,9 @@ export default $config({
   async run() {
     const mvpAccessCode = new sst.Secret('MvpAccessCode')
     const mvpSessionSecret = new sst.Secret('MvpSessionSecret')
+    const cognitoUserPoolId = new sst.Secret('CognitoUserPoolId')
+    const cognitoWebClientId = new sst.Secret('CognitoWebClientId')
+    const cognitoHostedUiHost = new sst.Secret('CognitoHostedUiHost')
 
     // DynamoDB テーブル・Alexa Lambda・API Gateway は us-east-1（veai エコシステムの本拠）。
     // Web インフラ（CloudFront/Lambda）は日本利用者に近い ap-northeast-1 に置き、
@@ -34,6 +37,11 @@ export default $config({
         USER_ID: 'default-user',
         HOUSEHOLD_ID: 'owner-household',
         HOUSEHOLD_PARTITION_MODE: 'household',
+        WEB_AUTH_MODE: 'cognito',
+        APP_ORIGIN: 'https://kusuri.veai.jp',
+        COGNITO_USER_POOL_ID: cognitoUserPoolId.value,
+        COGNITO_WEB_CLIENT_ID: cognitoWebClientId.value,
+        COGNITO_HOSTED_UI_HOST: cognitoHostedUiHost.value,
         MVP_ACCESS_GATE: 'enabled',
         MVP_ACCESS_CODE: mvpAccessCode.value,
         MVP_SESSION_SECRET: mvpSessionSecret.value,

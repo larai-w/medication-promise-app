@@ -1,31 +1,15 @@
-'use client'
+import AccessCodeLoginForm from '@/components/AccessCodeLoginForm'
+import { getWebAuthMode } from '@/lib/auth-mode'
 
-import { useState, type FormEvent } from 'react'
+export const dynamic = 'force-dynamic'
 
-export default function LoginPage() {
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setError(null)
-    setSubmitting(true)
-    const formData = new FormData(event.currentTarget)
-
-    try {
-      const response = await fetch('/api/access/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessCode: formData.get('accessCode') }),
-      })
-      const body = await response.json()
-      if (!response.ok) throw new Error(body.error || 'ログインできませんでした')
-      window.location.assign('/')
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'ログインできませんでした')
-      setSubmitting(false)
-    }
-  }
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
+  const mode = getWebAuthMode()
+  const { error } = await searchParams
 
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
@@ -33,32 +17,25 @@ export default function LoginPage() {
         <p className="text-indigo-600 text-sm font-semibold mb-2">限定テスト版</p>
         <h1 className="text-2xl font-bold text-gray-900 mb-3">おくすりの約束</h1>
         <p className="text-gray-600 text-sm leading-6 mb-6">
-          現在は招待されたご家族だけが利用できます。お渡ししたアクセスコードを入力してください。
+          現在は招待されたご家族だけが利用できます。
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="accessCode" className="block text-sm font-medium text-gray-700 mb-2">
-              アクセスコード
-            </label>
-            <input
-              id="accessCode"
-              name="accessCode"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-          {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-xl bg-indigo-700 text-white py-3 font-medium hover:bg-indigo-800 disabled:opacity-60"
+        {error && (
+          <p role="alert" className="mb-4 text-sm text-red-700">
+            ログインを完了できませんでした。もう一度お試しください。
+          </p>
+        )}
+
+        {mode === 'cognito' ? (
+          <a
+            href="/api/auth/login"
+            className="flex min-h-12 w-full items-center justify-center rounded-xl bg-indigo-700 px-4 py-3 font-medium text-white hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
           >
-            {submitting ? '確認中…' : '記録を見る'}
-          </button>
-        </form>
+            招待アカウントでログイン
+          </a>
+        ) : (
+          <AccessCodeLoginForm />
+        )}
 
         <div className="mt-6 flex gap-4 text-xs text-gray-500">
           <a href="/privacy" className="underline">プライバシー</a>

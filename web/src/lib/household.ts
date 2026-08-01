@@ -1,4 +1,8 @@
 import { isMvpRequestAuthorized } from './mvp-access.ts'
+import { readCookie } from './mvp-access.ts'
+import { getWebAuthMode } from './auth-mode.ts'
+import { readWebSessionToken, WEB_SESSION_COOKIE } from './cognito-session.ts'
+import { getHouseholdMembershipsBySubject } from './household-memberships.ts'
 import { USER_ID, makeHouseholdPK, makePK } from './dynamodb.ts'
 
 export type HouseholdPartitionMode = 'legacy-user' | 'household'
@@ -10,9 +14,15 @@ export interface AuthenticatedHousehold {
 }
 
 export class HouseholdAuthError extends Error {
-  constructor(message = 'この記録にアクセスするにはログインが必要です') {
+  readonly status: number
+
+  constructor(
+    message = 'この記録にアクセスするにはログインが必要です',
+    status = 401
+  ) {
     super(message)
     this.name = 'HouseholdAuthError'
+    this.status = status
   }
 }
 
@@ -52,15 +62,56 @@ export function makeAuthenticatedHousehold(
   }
 }
 
-export async function resolveRequestHousehold(request: Request): Promise<AuthenticatedHousehold> {
-  if (!(await isMvpRequestAuthorized(request))) throw new HouseholdAuthError()
-  return makeAuthenticatedHousehold()
+interface ResolveHouseholdDependencies {
+  getMembershipsBySubject?: typeof getHouseholdMembershipsBySubject
+  readSession?: typeof readWebSessionToken
+}
+
+export async function resolveRequestHousehold(
+  request: Request,
+  env: Record<string, string | undefined> = process.env,
+  dependencies: ResolveHouseholdDependencies = {}
+): Promise<AuthenticatedHousehold> {
+  if (getWebAuthMode(env) === 'mvp') {
+    if (!(await isMvpRequestAuthorized(request, env))) throw new HouseholdAuthError()
+    return makeAuthenticatedHousehold(env)
+  }
+
+  if (parseHouseholdPartitionMode(env.HOUSEHOLD_PARTITION_MODE) !== 'household') {
+    throw new HouseholdAuthError('現在ログインを利用できません。管理者へご連絡ください。', 503)
+  }
+
+  const readSession = dependencies.readSession ?? readWebSessionToken
+  const session = await readSession(
+    readCookie(request.headers.get('cookie'), WEB_SESSION_COOKIE),
+    env
+  )
+  if (!session) throw new HouseholdAuthError()
+
+  let memberships
+  try {
+    const lookup = dependencies.getMembershipsBySubject ?? getHouseholdMembershipsBySubject
+    memberships = await lookup(session.subject)
+  } catch {
+    throw new HouseholdAuthError('現在ログインを利用できません。管理者へご連絡ください。', 503)
+  }
+
+  const active = memberships.filter((membership) => membership.status === 'active')
+  if (active.length !== 1) {
+    throw new HouseholdAuthError('このアカウントでは現在記録を利用できません', 403)
+  }
+
+  return makeAuthenticatedHousehold({
+    ...env,
+    HOUSEHOLD_ID: active[0].householdId,
+    HOUSEHOLD_PARTITION_MODE: 'household',
+  })
 }
 
 export function unauthorizedHouseholdResponse(error: unknown) {
   if (!(error instanceof HouseholdAuthError)) return null
   return Response.json(
     { error: error.message },
-    { status: 401, headers: { 'Cache-Control': 'no-store' } }
+    { status: error.status, headers: { 'Cache-Control': 'no-store' } }
   )
 }
