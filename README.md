@@ -37,6 +37,7 @@ This repository is also a public delivery record for a small, AI-assisted Health
 - [Product management case study](docs/PRODUCT_MANAGEMENT_CASE_STUDY.md): discovery, personas, outcome roadmap, prioritisation, safety decisions, and delivery evidence.
 - [Agile delivery method](docs/AGILE_DELIVERY.md): story format, acceptance criteria, Definition of Done, risk controls, and AI-delegation governance.
 - [Household identity design](docs/HOUSEHOLD_IDENTITY_DESIGN.md): Web authentication, DynamoDB partitioning, migration, rollback, and isolation tests for the next release gate.
+- [Linked Alexa verification runbook](docs/ALEXA_LINKED_DEVICE_VERIFICATION.md): privacy-safe preflight, device checks, evidence template, rollback, and operator handoff for the account-linking release gate.
 - [GitHub Project automation](docs/PROJECT_AUTOMATION.md): labels, milestones, issue backfill, Project fields, and workflow automation.
 
 Historical GitHub issues are explicitly labelled `evidence:backfill`. They were reconstructed from contemporaneous private records, tests, and commits; they are not presented as if GitHub Issues had been used from day one. New work is managed live through issues and pull requests.

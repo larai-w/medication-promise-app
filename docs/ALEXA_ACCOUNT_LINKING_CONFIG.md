@@ -105,7 +105,7 @@ Notes:
 - The client **secret** lives only in the Alexa developer console token-exchange
   configuration, never in the Lambda or this repository.
 - `ALEXA_HOUSEHOLD_MODE` is the rollout switch. Production stays `legacy` until the
-  linked path is verified end to end (Issue #26), then flips to `household`. Rollback is
+  linked path is verified end to end (Issue #24), then flips to `household`. Rollback is
   flipping it back.
 - Membership items (`USER#<sub>` → `MEMBERSHIP#<householdId>`) for the existing owner
   household are created out of band in a non-public setup, not by this skill.
@@ -128,13 +128,13 @@ access (implemented in `alexa/household.mjs`, covered by `alexa/test/household.t
    value and document it in the deploy runbook. *(config decision, not code-blocking)*
 2. **Reminder permission is orthogonal to linking.** A linked account can still deny the
    `alexa::alerts:reminders` permission; the existing permission-card flow must remain.
-   Already handled in `alexa/index.mjs`; confirm during Issue #26 verification.
+   Already handled in `alexa/index.mjs`; confirm during Issue #24 verification.
 3. **Membership provisioning path.** This story assumes membership items already exist for
    the invited subject. The mechanism that writes `USER#<sub>` → `MEMBERSHIP#<householdId>`
    at invitation time is Web-side work and is not in scope for #12.
 
-None of the above blocks implementation of #23/#24/#25; they are provisioning and
-verification decisions for #26 and the invited-Web-access work.
+None of the above blocks the completed implementation tasks; they are provisioning and
+verification decisions for #24 and the invited-Web-access work.
 
 ## Acceptance-criteria mapping (Issue #22)
 
