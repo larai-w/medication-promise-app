@@ -3,9 +3,10 @@
 ## Purpose
 
 Issue #11 is the main release gate before Medication Promise can invite another
-household. The current MVP protects one household behind an access code, but every
-request still resolves to `USER#default-user`. That is acceptable for the current
-private deployment only. It is not tenant isolation.
+household. The original MVP protected one household behind an access code and used
+`USER#default-user`. The data migration and household partition cutover are complete;
+the remaining release gate is deriving the household from an authenticated identity
+instead of a fixed runtime value.
 
 This document defines the public, implementation-ready design for moving from a
 single shared household to isolated invited households without publishing private
@@ -33,15 +34,16 @@ OAuth and device-permission surface.
 Use an external identity provider for authentication rather than extending the
 current access-code gate into a custom auth system.
 
-Recommended first implementation:
+Implemented identity decision:
 
 | Concern | Decision |
 | --- | --- |
-| Identity provider | Amazon Cognito User Pool or Auth.js-compatible OIDC provider |
+| Identity provider | Amazon Cognito User Pool shared with Alexa account linking |
 | Household identity | Stable `householdId` assigned by the application |
 | User identity | Provider subject stored separately from `householdId` |
-| Session | HTTP-only secure session cookie |
-| Authorization source | Server-side lookup from authenticated user to household |
+| Browser flow | Cognito authorization code grant with PKCE and `openid` scope |
+| Session | Encrypted, HTTP-only, secure, 12-hour application session |
+| Authorization source | Consistent server-side membership lookup on every API request |
 
 Do not trust a client-provided household ID. The browser may display household
 metadata, but every API route must derive the household from the server-side
@@ -71,20 +73,22 @@ with the returned identity instead of importing a global `USER_ID`.
 
 ## Migration Plan
 
-1. Add household-aware data helpers while keeping `default-user` as a compatibility
-   fallback in local development only.
-2. Create a private migration script that copies existing `USER#default-user`
-   records and settings into one owner household partition.
-3. Run the migration in a dry-run mode that reports item counts without writing.
-4. Run the migration once in production and verify counts for records and settings.
-5. Switch Web API routes to require an authenticated household in production.
-6. Keep the previous partition unchanged until rollback confidence is high.
+1. Household-aware data helpers were added with `default-user` retained as a
+   compatibility fallback for local development and controlled rollback.
+2. A migration script copied existing `USER#default-user` records and settings into
+   one owner household partition without deleting the source.
+3. Dry-run and write-mode migration checks were completed before the partition cutover.
+4. Production Web data access was switched to `HOUSEHOLD#<householdId>`.
+5. Cognito authorization code + PKCE now resolves the provider subject; API routes
+   query its membership before data access.
+6. The previous partition remains unchanged until rollback confidence is high.
 
 Rollback plan:
 
-- Disable the identity-gated deployment.
-- Repoint the Web runtime to the prior single-household path.
-- Do not delete `USER#default-user` records during the migration release.
+- Stop new invitations and return `WEB_AUTH_MODE` to `mvp` through a reviewed deploy.
+- Keep `HOUSEHOLD_PARTITION_MODE=household` so current owner data remains available.
+- Do not delete membership items, the household partition, or `USER#default-user`
+  during the validation window.
 
 ## API Boundary Changes
 
@@ -114,6 +118,9 @@ Required automated tests for Issue #11:
 - Settings reads and writes are isolated by household.
 - Migration dry-run reports expected source and target counts.
 - Production fallback to `default-user` is disabled.
+- Invalid, expired, or modified Web sessions fail closed.
+- Zero, disabled, or multiple active memberships fail closed before data access.
+- The authorization flow uses state and PKCE, and does not require a Web client secret.
 
 Unit tests should use two synthetic household IDs such as `household-a` and
 `household-b`. Do not use real names, real medication schedules, access codes, or
@@ -144,5 +151,7 @@ Proceed with Web household identity and DynamoDB partition isolation before any
 invitation-only beta. Keep Alexa account linking as the next dependent release gate
 in Issue #12.
 
-The first release-gate design for that Alexa work is documented in
+The release and recovery procedure is documented in
+[Web Cognito household authentication runbook](WEB_COGNITO_AUTH_RUNBOOK.md). The
+dependent Alexa design is documented in
 [Alexa account linking and household membership design](ALEXA_ACCOUNT_LINKING_DESIGN.md).

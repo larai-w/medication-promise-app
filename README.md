@@ -22,7 +22,7 @@ This project demonstrates end-to-end Technical PM capability in a HealthTech con
 | Web recording, correction, history, and monthly PDF | Working household MVP |
 | Alexa voice recording and daily reminders | Working household MVP |
 | Protected medication name and reminder settings | Deployed household MVP |
-| Household-scoped Web data boundary | Prototype deployed in household mode; broader identity verification remains gated |
+| Household-scoped Web data boundary | Cognito + membership implementation; production sign-in verification is the release gate |
 | Alexa account linking and household resolution | Prototype code and automated tests; skill configuration and device verification remain |
 | Public availability | Not released |
 
@@ -37,6 +37,7 @@ This repository is also a public delivery record for a small, AI-assisted Health
 - [Product management case study](docs/PRODUCT_MANAGEMENT_CASE_STUDY.md): discovery, personas, outcome roadmap, prioritisation, safety decisions, and delivery evidence.
 - [Agile delivery method](docs/AGILE_DELIVERY.md): story format, acceptance criteria, Definition of Done, risk controls, and AI-delegation governance.
 - [Household identity design](docs/HOUSEHOLD_IDENTITY_DESIGN.md): Web authentication, DynamoDB partitioning, migration, rollback, and isolation tests for the next release gate.
+- [Web Cognito authentication runbook](docs/WEB_COGNITO_AUTH_RUNBOOK.md): PKCE sign-in, membership resolution, production checks, and rollback.
 - [Linked Alexa verification runbook](docs/ALEXA_LINKED_DEVICE_VERIFICATION.md): privacy-safe preflight, device checks, evidence template, rollback, and operator handoff for the account-linking release gate.
 - [GitHub Project automation](docs/PROJECT_AUTOMATION.md): labels, milestones, issue backfill, Project fields, and workflow automation.
 
@@ -102,7 +103,7 @@ Web production uses SST v4 and OpenNext. The web infrastructure is in `ap-northe
 
 ## Safety Boundary
 
-Medication Promise supports recording and reflection. Medication decisions remain with the person taking the medicine and their qualified healthcare professionals. The present access-code gate protects a single-household MVP; it is not a substitute for individual accounts or tenant isolation.
+Medication Promise supports recording and reflection. Medication decisions remain with the person taking the medicine and their qualified healthcare professionals. The access-code path is retained only for controlled rollback. Invited Web access uses Cognito identity plus a server-side household membership lookup; public self-service signup and multi-household switching are not available.
 
 ## License
 
