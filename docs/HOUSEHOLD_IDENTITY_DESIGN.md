@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Issue #11 is the main release gate before Medication Promise can invite another
-household. The original MVP protected one household behind an access code and used
-`USER#default-user`. The data migration and household partition cutover are complete;
-the remaining release gate is deriving the household from an authenticated identity
-instead of a fixed runtime value.
+Issue #11 was the main Web data-boundary release gate before Medication Promise could
+consider inviting another household. The original MVP protected one household behind
+an access code and used `USER#default-user`. The data migration, household partition
+cutover, authenticated identity resolution, and production synthetic acceptance check
+are complete.
 
 This document defines the public, implementation-ready design for moving from a
 single shared household to isolated invited households without publishing private
@@ -147,9 +147,10 @@ Before inviting any household:
 
 ## Decision
 
-Proceed with Web household identity and DynamoDB partition isolation before any
-invitation-only beta. Keep Alexa account linking as the next dependent release gate
-in Issue #12.
+The Web household identity and DynamoDB partition boundary is released and verified.
+Keep broader invitation-only beta access gated on the remaining Alexa account-linking,
+deletion/recovery, and validation work. Alexa account linking remains tracked in
+Issue #12.
 
 The release and recovery procedure is documented in
 [Web Cognito household authentication runbook](WEB_COGNITO_AUTH_RUNBOOK.md). The

@@ -22,7 +22,7 @@ This project demonstrates end-to-end Technical PM capability in a HealthTech con
 | Web recording, correction, history, and monthly PDF | Working household MVP |
 | Alexa voice recording and daily reminders | Working household MVP |
 | Protected medication name and reminder settings | Deployed household MVP |
-| Household-scoped Web data boundary | Cognito + membership implementation; production sign-in verification is the release gate |
+| Household-scoped Web data boundary | Deployed; Cognito + membership flow verified in production with synthetic data |
 | Alexa account linking and household resolution | Prototype code and automated tests; skill configuration and device verification remain |
 | Public availability | Not released |
 
@@ -36,7 +36,7 @@ This repository is also a public delivery record for a small, AI-assisted Health
 - [Live Agile Delivery Project](https://github.com/users/larai-w/projects/9): evidence-backed and planned user stories with delivery status, priority, area, size, and release target.
 - [Product management case study](docs/PRODUCT_MANAGEMENT_CASE_STUDY.md): discovery, personas, outcome roadmap, prioritisation, safety decisions, and delivery evidence.
 - [Agile delivery method](docs/AGILE_DELIVERY.md): story format, acceptance criteria, Definition of Done, risk controls, and AI-delegation governance.
-- [Household identity design](docs/HOUSEHOLD_IDENTITY_DESIGN.md): Web authentication, DynamoDB partitioning, migration, rollback, and isolation tests for the next release gate.
+- [Household identity design](docs/HOUSEHOLD_IDENTITY_DESIGN.md): released Web authentication, DynamoDB partitioning, migration, rollback, and isolation controls.
 - [Web Cognito authentication runbook](docs/WEB_COGNITO_AUTH_RUNBOOK.md): PKCE sign-in, membership resolution, production checks, and rollback.
 - [Linked Alexa verification runbook](docs/ALEXA_LINKED_DEVICE_VERIFICATION.md): privacy-safe preflight, device checks, evidence template, rollback, and operator handoff for the account-linking release gate.
 - [GitHub Project automation](docs/PROJECT_AUTOMATION.md): labels, milestones, issue backfill, Project fields, and workflow automation.
