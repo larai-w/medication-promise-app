@@ -75,8 +75,14 @@ Architecture decisions are recorded as product decisions, not only implementatio
 | `PUT` | `/api/records/[id]` | Update a record |
 | `DELETE` | `/api/records/[id]` | Delete a record |
 | `GET` | `/api/records/pdf?month=YYYY-MM` | Monthly PDF export |
+| `GET` | `/api/records/export?from=YYYY-MM-DD&to=YYYY-MM-DD` | Versioned household care-event JSON export |
 | `GET` | `/api/settings` | Read household medication and reminder settings |
 | `PUT` | `/api/settings` | Update household medication and reminder settings |
+
+The machine-readable export is documented in
+[Versioned Care Event Export](docs/CARE_EVENT_EXPORT.md). It uses synthetic tests,
+does not infer missed medication from absent records, and excludes identity,
+credentials, medication names, and presentation settings.
 
 ## Local Verification
 

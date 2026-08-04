@@ -21,6 +21,7 @@ import {
 } from './record-validation.ts'
 import { getMedicationSettings, putMedicationSettings } from './settings-store.ts'
 import { parseMedicationSettingsInput, SettingsValidationError } from './settings.ts'
+import { buildMedicationPromiseExport, CareEventExportError } from './care-event-export.ts'
 import type { MedicationRecord } from '../types/index.ts'
 
 type HouseholdResolver = (request: Request) => Promise<AuthenticatedHousehold>
@@ -194,6 +195,61 @@ export function makePdfHandler({
         'Content-Disposition': `attachment; filename="drug-and-oath-${month}.pdf"`,
       },
     })
+  }
+}
+
+export function makeCareEventExportHandler({
+  resolveHousehold = resolveRequestHousehold,
+  listRecords = listRecordsForHousehold,
+  buildExport = buildMedicationPromiseExport,
+}: {
+  resolveHousehold?: HouseholdResolver
+  listRecords?: typeof listRecordsForHousehold
+  buildExport?: typeof buildMedicationPromiseExport
+} = {}) {
+  return async function GET(request: Request) {
+    const resolved = await resolveForApi(request, resolveHousehold)
+    if (resolved.response) return resolved.response
+
+    const { searchParams } = new URL(request.url)
+    const from = searchParams.get('from')
+    const to = searchParams.get('to')
+    if (!isValidDate(from) || !isValidDate(to)) {
+      return Response.json(
+        { error: 'from/toには正しい日付を両方指定してください' },
+        { status: 400 }
+      )
+    }
+    if (from > to) {
+      return Response.json({ error: 'fromはto以前の日付を指定してください' }, { status: 400 })
+    }
+
+    const start = Date.parse(`${from}T00:00:00Z`)
+    const end = Date.parse(`${to}T00:00:00Z`)
+    const inclusiveDays = Math.floor((end - start) / 86_400_000) + 1
+    if (inclusiveDays > 366) {
+      return Response.json({ error: 'エクスポート期間は366日以内にしてください' }, { status: 400 })
+    }
+
+    try {
+      const records = await listRecords(resolved.household, { from, to })
+      const body = buildExport(records)
+      return Response.json(body, {
+        headers: {
+          'Cache-Control': 'no-store',
+          'Content-Disposition': `attachment; filename="medication-promise-${from}-${to}.json"`,
+          'X-Content-Type-Options': 'nosniff',
+        },
+      })
+    } catch (error) {
+      if (error instanceof CareEventExportError) {
+        return Response.json(
+          { error: 'エクスポートできない記録があります' },
+          { status: 422, headers: { 'Cache-Control': 'no-store' } }
+        )
+      }
+      throw error
+    }
   }
 }
 

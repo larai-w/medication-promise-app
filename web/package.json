@@ -33,6 +33,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "sst": "^4.17.1",
