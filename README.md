@@ -23,6 +23,7 @@ This project demonstrates end-to-end Technical PM capability in a HealthTech con
 | Alexa voice recording and daily reminders | Working household MVP |
 | Protected medication name and reminder settings | Deployed household MVP |
 | Household-scoped Web data boundary | Deployed; Cognito + membership flow verified in production with synthetic data |
+| Weekly report | Deterministic rule-based report is the approved default; the Bedrock prototype path is not approved for use and remains default-off |
 | Alexa account linking and household resolution | Prototype code and automated tests; skill configuration and device verification remain |
 | Public availability | Not released |
 
@@ -104,6 +105,11 @@ Web production uses SST v4 and OpenNext. The web infrastructure is in `ap-northe
 ## Safety Boundary
 
 Medication Promise supports recording and reflection. Medication decisions remain with the person taking the medicine and their qualified healthcare professionals. The access-code path is retained only for controlled rollback. Invited Web access uses Cognito identity plus a server-side household membership lookup; public self-service signup and multi-household switching are not available.
+
+The weekly report does not use Bedrock by default. The repository contains a gated
+prototype integration, but model use is not an approved product capability and health
+record data must not be sent through that path without a separate privacy, safety,
+grounding, retention, and user-consent decision.
 
 ## License
 
