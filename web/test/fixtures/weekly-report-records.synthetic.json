@@ -1,0 +1,20 @@
+{
+  "synthetic": true,
+  "period": {
+    "from": "2035-01-01",
+    "to": "2035-01-07"
+  },
+  "records": [
+    { "date": "2035-01-01", "timing": "朝" },
+    { "date": "2035-01-01", "timing": "昼" },
+    { "date": "2035-01-01", "timing": "晩" },
+    { "date": "2035-01-01", "timing": "夜8時" },
+    { "date": "2035-01-01", "timing": "夜9時" },
+    { "date": "2035-01-01", "timing": "朝" },
+    { "date": "2035-01-02", "timing": "朝" },
+    { "date": "2035-01-02", "timing": "昼" },
+    { "date": "2035-01-02", "timing": "晩" },
+    { "date": "2035-01-04", "timing": "朝", "notes": "SYNTHETIC_PRIVATE_NOTE_MUST_NOT_LEAVE_FACTS" },
+    { "date": "2035-01-08", "timing": "朝" }
+  ]
+}

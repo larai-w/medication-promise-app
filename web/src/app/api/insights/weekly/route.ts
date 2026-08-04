@@ -1,10 +1,20 @@
 import { resolveRequestHousehold, unauthorizedHouseholdResponse } from '@/lib/household'
 import { listRecordsForHousehold } from '@/lib/household-records.ts'
 import { TIMINGS } from '@/lib/constants'
-import { subDays, format, parseISO } from 'date-fns'
+import { subDays, format } from 'date-fns'
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime'
-import { isBedrockWeeklyReportEnabled } from '@/lib/weekly-report'
-import type { MedicationRecord } from '@/types'
+import {
+  buildBedrockWeeklyReportPrompt,
+  buildWeeklyReportFacts,
+  getBedrockWeeklyReportModelId,
+  isBedrockWeeklyReportEnabled,
+  renderGroundedWeeklyReportCandidate,
+  renderRuleBasedWeeklyReport,
+  validateGroundedWeeklyReportCandidate,
+  WEEKLY_REPORT_SYSTEM_PROMPT,
+  WEEKLY_REPORT_WINDOW_DAYS,
+  type WeeklyReportFacts,
+} from '@/lib/weekly-report'
 
 // Bedrock クライアント（Lambda実行ロール or 環境変数で認証）
 function getBedrockClient() {
@@ -13,60 +23,32 @@ function getBedrockClient() {
   })
 }
 
+interface WeeklyReportResult {
+  text: string
+  source: 'ai' | 'rule_based'
+}
+
 async function generateWeeklyReport(
-  records: MedicationRecord[]
-): Promise<string> {
-  const now = new Date()
-  const weekAgo = subDays(now, 7)
-  const weekRecords = records.filter(r => {
-    const d = parseISO(r.date)
-    return d >= weekAgo && d <= now
-  })
-
-  // 週間統計を計算
-  const byDate = weekRecords.reduce<Record<string, string[]>>((acc, r) => {
-    if (!acc[r.date]) acc[r.date] = []
-    acc[r.date].push(`${r.timing}(${r.time})${r.notes ? ` [${r.notes}]` : ''}`)
-    return acc
-  }, {})
-  const dates = Object.keys(byDate).sort()
-  const totalDays = dates.length
-  const allTimingsCount = TIMINGS.length * totalDays
-  // 重複記録を除外: (date, timing) のユニークペアでカウント
-  const uniquePairs = new Set(weekRecords.map(r => `${r.date}|${r.timing}`))
-  const completedCount = uniquePairs.size
-  const rate = allTimingsCount > 0 ? Math.min(100, Math.round((completedCount / allTimingsCount) * 100)) : 0
-
-  // メモ一覧
-  const notes = weekRecords.filter(r => r.notes).map(r => `[${r.date} ${r.timing}] ${r.notes}`)
-
+  facts: WeeklyReportFacts
+): Promise<WeeklyReportResult> {
   // Health-record-derived data must not leave the application boundary unless the
   // owner explicitly enables this reviewed integration.
-  if (!isBedrockWeeklyReportEnabled()) {
-    return fallbackReport(totalDays, rate, notes)
+  const modelId = getBedrockWeeklyReportModelId()
+  if (!isBedrockWeeklyReportEnabled() || !modelId) {
+    return { text: renderRuleBasedWeeklyReport(facts), source: 'rule_based' }
   }
 
-  // プロンプト構築
-  const systemPrompt = 'あなたは服薬管理アプリ「おくすりの約束」のやさしいコーチです。ユーザーの服薬データから、親しみやすい日本語で2〜3文の週間レポートを生成してください。具体的な数字やアドバイスを含めてください。敬体（ですます調）でお願いします。'
-
-  const userPrompt = `## 今週の服薬データ（${dates[0] ?? '?'} 〜 ${dates[dates.length - 1] ?? '?'}）
-- 服薬記録日数: ${totalDays}日
-- 服薬完了率: ${rate}%（全${TIMINGS.length}種目中 ${completedCount}回）
-- 各日の記録:
-${dates.map(d => `  - ${d}: ${byDate[d]?.join(', ') ?? '記録なし'}`).join('\n')}
-${notes.length > 0 ? `- メモ:\n${notes.map(n => `  - ${n}`).join('\n')}` : '- メモ: なし'}
-
-上記のデータから、ユーザーへの週間レポートを日本語で2〜3文で生成してください。`
+  const userPrompt = buildBedrockWeeklyReportPrompt(facts)
 
   const client = getBedrockClient()
   const command = new InvokeModelCommand({
-    modelId: 'anthropic.claude-3-haiku-20240307-v1:0',
+    modelId,
     contentType: 'application/json',
     accept: 'application/json',
     body: JSON.stringify({
       anthropic_version: 'bedrock-2023-05-31',
-      max_tokens: 500,
-      system: systemPrompt,
+      max_tokens: 200,
+      system: WEEKLY_REPORT_SYSTEM_PROMPT,
       messages: [
         { role: 'user', content: userPrompt },
       ],
@@ -76,27 +58,16 @@ ${notes.length > 0 ? `- メモ:\n${notes.map(n => `  - ${n}`).join('\n')}` : '- 
   try {
     const response = await client.send(command)
     const body = JSON.parse(new TextDecoder().decode(response.body))
-    return body.content?.[0]?.text ?? '今週のレポートを生成できませんでした。'
+    const text = body.content?.[0]?.text
+    if (!text) {
+      return { text: renderRuleBasedWeeklyReport(facts), source: 'rule_based' }
+    }
+    const candidate = validateGroundedWeeklyReportCandidate(JSON.parse(text), facts)
+    return { text: renderGroundedWeeklyReportCandidate(candidate), source: 'ai' }
   } catch (error) {
     console.error('Bedrock error:', error)
-    // Bedrockが使えない場合のフォールバック
-    return fallbackReport(totalDays, rate, notes)
+    return { text: renderRuleBasedWeeklyReport(facts), source: 'rule_based' }
   }
-}
-
-function fallbackReport(totalDays: number, rate: number, notes: string[]): string {
-  let report = `今週は${totalDays}日間、服薬を記録しました。完了率は${rate}%です。`
-  if (rate >= 80) {
-    report += ' とても良い調子です！この調子で続けていきましょう。'
-  } else if (rate >= 50) {
-    report += ' もう少しです。毎日の習慣にしていきましょう。'
-  } else {
-    report += ' 記録が少なめです。お薬を飲んだら忘れずに記録してくださいね。'
-  }
-  if (notes.length > 0) {
-    report += ` メモが${notes.length}件ありました。体調の変化に気をつけてください。`
-  }
-  return report
 }
 
 // GET /api/insights/weekly
@@ -111,15 +82,17 @@ export async function GET(request: Request) {
   }
 
   const now = new Date()
-  const from = format(subDays(now, 7), 'yyyy-MM-dd')
+  const from = format(subDays(now, WEEKLY_REPORT_WINDOW_DAYS - 1), 'yyyy-MM-dd')
   const to = format(now, 'yyyy-MM-dd')
 
   const records = await listRecordsForHousehold(household, { from, to })
-
-  const report = await generateWeeklyReport(records)
+  const facts = buildWeeklyReportFacts(records, { from, to, expectedTimings: TIMINGS })
+  const { text, source } = await generateWeeklyReport(facts)
 
   return Response.json({
-    report,
+    report: text,
+    source,
+    facts,
     generatedAt: now.toISOString(),
     period: { from, to },
   })
