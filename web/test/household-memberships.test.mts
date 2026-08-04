@@ -38,6 +38,16 @@ test('membership lookup retains disabled state and ignores malformed rows', asyn
   )
 })
 
+test('membership lookup exposes deleting state for idempotent deletion recovery', async () => {
+  const client = captureClient([
+    { SK: 'MEMBERSHIP#household-a', householdId: 'household-a', status: 'deleting' },
+  ])
+  assert.deepEqual(
+    await getHouseholdMembershipsBySubject('provider-user-a', client),
+    [{ householdId: 'household-a', status: 'deleting' }]
+  )
+})
+
 test('membership lookup rejects a missing or malformed provider subject', async () => {
   await assert.rejects(
     getHouseholdMembershipsBySubject('', captureClient([])),

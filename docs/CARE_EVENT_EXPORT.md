@@ -49,8 +49,9 @@ store does not preserve a complete revision chain, so the export does not invent
 superseded event or correction reason.
 
 Deleting an individual record removes it through the existing household-scoped API.
-Account-wide export/deletion, retention, and recovery confirmation remain separate
-release work and are not implied by this endpoint.
+The household-wide deletion code path and its retention/recovery disclosure are
+documented in [DATA_DELETION.md](DATA_DELETION.md), but production activation remains
+gated by Alexa household cutover and recovery verification.
 
 ## Synthetic verification
 

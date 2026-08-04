@@ -6,7 +6,7 @@ const SUBJECT_PATTERN = /^[A-Za-z0-9_-]{8,128}$/
 
 export interface HouseholdMembership {
   householdId: string
-  status: 'active' | 'disabled'
+  status: 'active' | 'disabled' | 'deleting'
 }
 
 interface MembershipItem {
@@ -40,10 +40,17 @@ export async function getHouseholdMembershipsBySubject(
     if (fromAttribute && fromSortKey && fromAttribute !== fromSortKey) return []
     const householdId = fromAttribute || fromSortKey
     if (!HOUSEHOLD_ID_PATTERN.test(householdId)) return []
-    if (item.status !== undefined && item.status !== 'active' && item.status !== 'disabled') {
+    if (
+      item.status !== undefined
+      && item.status !== 'active'
+      && item.status !== 'disabled'
+      && item.status !== 'deleting'
+    ) {
       return []
     }
-    const status = item.status === 'disabled' ? 'disabled' : 'active'
+    const status = item.status === 'disabled' || item.status === 'deleting'
+      ? item.status
+      : 'active'
     return [{ householdId, status }]
   })
 }

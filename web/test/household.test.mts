@@ -65,6 +65,7 @@ test('Cognito session resolves exactly one active membership on every request', 
     householdId: 'household-a',
     partitionMode: 'household',
     partitionKey: 'HOUSEHOLD#household-a',
+    providerSubject: 'provider-user-a',
   })
 })
 

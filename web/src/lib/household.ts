@@ -11,6 +11,7 @@ export interface AuthenticatedHousehold {
   householdId: string
   partitionKey: string
   partitionMode: HouseholdPartitionMode
+  providerSubject?: string
 }
 
 export class HouseholdAuthError extends Error {
@@ -101,11 +102,14 @@ export async function resolveRequestHousehold(
     throw new HouseholdAuthError('このアカウントでは現在記録を利用できません', 403)
   }
 
-  return makeAuthenticatedHousehold({
-    ...env,
-    HOUSEHOLD_ID: active[0].householdId,
-    HOUSEHOLD_PARTITION_MODE: 'household',
-  })
+  return {
+    ...makeAuthenticatedHousehold({
+      ...env,
+      HOUSEHOLD_ID: active[0].householdId,
+      HOUSEHOLD_PARTITION_MODE: 'household',
+    }),
+    providerSubject: session.subject,
+  }
 }
 
 export function unauthorizedHouseholdResponse(error: unknown) {
