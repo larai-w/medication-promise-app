@@ -3,6 +3,7 @@ import { listRecordsForHousehold } from '@/lib/household-records.ts'
 import { TIMINGS } from '@/lib/constants'
 import { subDays, format, parseISO } from 'date-fns'
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime'
+import { isBedrockWeeklyReportEnabled } from '@/lib/weekly-report'
 import type { MedicationRecord } from '@/types'
 
 // Bedrock クライアント（Lambda実行ロール or 環境変数で認証）
@@ -38,6 +39,12 @@ async function generateWeeklyReport(
 
   // メモ一覧
   const notes = weekRecords.filter(r => r.notes).map(r => `[${r.date} ${r.timing}] ${r.notes}`)
+
+  // Health-record-derived data must not leave the application boundary unless the
+  // owner explicitly enables this reviewed integration.
+  if (!isBedrockWeeklyReportEnabled()) {
+    return fallbackReport(totalDays, rate, notes)
+  }
 
   // プロンプト構築
   const systemPrompt = 'あなたは服薬管理アプリ「おくすりの約束」のやさしいコーチです。ユーザーの服薬データから、親しみやすい日本語で2〜3文の週間レポートを生成してください。具体的な数字やアドバイスを含めてください。敬体（ですます調）でお願いします。'
