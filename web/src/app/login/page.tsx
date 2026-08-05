@@ -6,10 +6,10 @@ export const dynamic = 'force-dynamic'
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ deleted?: string; error?: string }>
 }) {
   const mode = getWebAuthMode()
-  const { error } = await searchParams
+  const { deleted, error } = await searchParams
 
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
@@ -23,6 +23,12 @@ export default async function LoginPage({
         {error && (
           <p role="alert" className="mb-4 text-sm text-red-700">
             ログインを完了できませんでした。もう一度お試しください。
+          </p>
+        )}
+
+        {deleted === '1' && (
+          <p role="status" className="mb-4 text-sm text-green-700">
+            世帯データの削除が完了しました。
           </p>
         )}
 

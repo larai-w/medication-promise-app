@@ -25,7 +25,7 @@
 		"project": "https://github.com/users/larai-w/projects/9",
 		"app": "https://kusuri.veai.jp"
 	},
-	"lastVerified": "2026-08-01",
+	"lastVerified": "2026-08-04",
 	"site": {
 		"status": "in-development",
 		"order": 4,
@@ -84,6 +84,18 @@
 			]
 		},
 		{
+			"id": "versioned-care-event-export",
+			"label": {
+				"en": "Household-scoped, versioned care-event JSON export",
+				"ja": "世帯単位のversioned care-event JSON書き出し"
+			},
+			"status": "prototype",
+			"evidenceUrls": [
+				"https://github.com/larai-w/medication-promise-app/blob/main/docs/CARE_EVENT_EXPORT.md",
+				"https://github.com/larai-w/medication-promise-app/issues/14"
+			]
+		},
+		{
 			"id": "alexa-account-linking",
 			"label": {
 				"en": "Alexa account linking and household resolution",
@@ -105,17 +117,31 @@
 			"evidenceUrls": [
 				"https://github.com/larai-w/medication-promise-app/issues/34"
 			]
+		},
+		{
+			"id": "household-data-deletion",
+			"label": {
+				"en": "Household-scoped records, settings, and membership deletion",
+				"ja": "世帯単位の記録・設定・連携情報削除"
+			},
+			"status": "prototype",
+			"evidenceUrls": [
+				"https://github.com/larai-w/medication-promise-app/blob/main/docs/DATA_DELETION.md",
+				"https://github.com/larai-w/medication-promise-app/issues/14"
+			]
 		}
 	],
 	"boundaries": {
 		"en": [
 			"Private access is required; public self-service signup is not available.",
 			"The app records medication events and reminders but does not decide whether medication should be taken.",
+			"The versioned JSON export and household deletion path are code- and synthetic-test verified; production deployment and deletion activation remain separate gates.",
 			"GO!GO! is planned and must not be described as an implemented skin."
 		],
 		"ja": [
 			"利用には非公開アクセスが必要で、一般向けセルフ登録は提供していません。",
 			"服薬イベントとリマインダーを記録しますが、薬を飲むべきかは判断しません。",
+			"versioned JSON書き出しと世帯データ削除経路はコードと合成テストで検証済みですが、本番配備と削除機能の有効化は別のゲートです。",
 			"おくすりde GO!GO!は計画段階であり、実装済みとは表現しません。"
 		]
 	}

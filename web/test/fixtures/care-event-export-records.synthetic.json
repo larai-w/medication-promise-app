@@ -1,0 +1,22 @@
+[
+  {
+    "id": "c3ludGhldGljLXJlY29yZC0wMDE",
+    "userId": "synthetic-household-a",
+    "date": "2035-01-15",
+    "time": "08:12",
+    "timing": "朝",
+    "source": "manual",
+    "notes": "合成データのメモ",
+    "createdAt": "2035-01-14T23:12:30.000Z"
+  },
+  {
+    "id": "c3ludGhldGljLXJlY29yZC0wMDI",
+    "userId": "synthetic-household-a",
+    "date": "2035-01-15",
+    "time": "12:05",
+    "timing": "昼",
+    "source": "alexa",
+    "createdAt": "2035-01-15T03:05:10.000Z",
+    "updatedAt": "2035-01-15T03:06:00.000Z"
+  }
+]

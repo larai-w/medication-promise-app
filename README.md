@@ -23,6 +23,8 @@ This project demonstrates end-to-end Technical PM capability in a HealthTech con
 | Alexa voice recording and daily reminders | Working household MVP |
 | Protected medication name and reminder settings | Deployed household MVP |
 | Household-scoped Web data boundary | Deployed; Cognito + membership flow verified in production with synthetic data |
+| Versioned JSON export | Implemented and synthetic-contract verified; production Web deployment remains a separate gate |
+| Household-wide deletion | Implemented and synthetic-isolation verified; production feature flag remains off pending Alexa and recovery gates |
 | Weekly report | Deterministic rule-based report is the approved default; the Bedrock prototype path is not approved for use and remains default-off |
 | Alexa account linking and household resolution | Prototype code and automated tests; skill configuration and device verification remain |
 | Public availability | Not released |
@@ -40,6 +42,7 @@ This repository is also a public delivery record for a small, AI-assisted Health
 - [Household identity design](docs/HOUSEHOLD_IDENTITY_DESIGN.md): released Web authentication, DynamoDB partitioning, migration, rollback, and isolation controls.
 - [Web Cognito authentication runbook](docs/WEB_COGNITO_AUTH_RUNBOOK.md): PKCE sign-in, membership resolution, production checks, and rollback.
 - [Linked Alexa verification runbook](docs/ALEXA_LINKED_DEVICE_VERIFICATION.md): privacy-safe preflight, device checks, evidence template, rollback, and operator handoff for the account-linking release gate.
+- [Household data deletion](docs/DATA_DELETION.md): tenant-scoped deletion order, retention/recovery limits, and production activation gates.
 - [GitHub Project automation](docs/PROJECT_AUTOMATION.md): labels, milestones, issue backfill, Project fields, and workflow automation.
 
 Historical GitHub issues are explicitly labelled `evidence:backfill`. They were reconstructed from contemporaneous private records, tests, and commits; they are not presented as if GitHub Issues had been used from day one. New work is managed live through issues and pull requests.
@@ -75,8 +78,16 @@ Architecture decisions are recorded as product decisions, not only implementatio
 | `PUT` | `/api/records/[id]` | Update a record |
 | `DELETE` | `/api/records/[id]` | Delete a record |
 | `GET` | `/api/records/pdf?month=YYYY-MM` | Monthly PDF export |
+| `GET` | `/api/records/export?from=YYYY-MM-DD&to=YYYY-MM-DD` | Versioned household care-event JSON export |
 | `GET` | `/api/settings` | Read household medication and reminder settings |
 | `PUT` | `/api/settings` | Update household medication and reminder settings |
+| `GET` | `/api/account/data` | Read deletion availability and required acknowledgements |
+| `DELETE` | `/api/account/data` | Delete the authenticated household data when the release gate is enabled |
+
+The machine-readable export is documented in
+[Versioned Care Event Export](docs/CARE_EVENT_EXPORT.md). It uses synthetic tests,
+does not infer missed medication from absent records, and excludes identity,
+credentials, medication names, and presentation settings.
 
 ## Local Verification
 
