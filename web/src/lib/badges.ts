@@ -10,6 +10,7 @@ export interface Badge {
 
 interface BadgeInput {
   streak: number
+  maxStreak?: number       // 取得範囲内の最長連続日数。達成バッジは剥奪しないためこれで判定
   timingStats: { timing: Timing; total: number; completed: number; rate: number }[]
   monthlyRate: number
   perfectDays: number      // その日に全タイミング服薬した日数
@@ -29,8 +30,9 @@ const BADGE_DEFINITIONS: Omit<Badge, 'earned'>[] = [
 
 export function computeBadges(input: BadgeInput): Badge[] {
   const earnedFlags: Record<string, boolean> = {
-    'streak-7': input.streak >= 7,
-    'streak-30': input.streak >= 30,
+    // 一度でも達成したら剥奪しない: 現在の連続ではなく最長連続で判定（未指定時は現在値）
+    'streak-7': (input.maxStreak ?? input.streak) >= 7,
+    'streak-30': (input.maxStreak ?? input.streak) >= 30,
     'monthly-perfect': input.monthlyRate >= 100,
     'morning-master': (input.timingStats.find(s => s.timing === '朝')?.rate ?? 0) >= 90,
     'evening-master': (input.timingStats.find(s => s.timing === '夜9時')?.rate ?? 0) >= 90,
