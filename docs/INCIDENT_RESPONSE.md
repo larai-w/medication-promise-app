@@ -81,7 +81,7 @@
 1. Identify the last-good commit (last green before the failing change).
 2. `git checkout <last-good-sha>` and `cd web && npm run deploy` to roll production back.
 3. Fix forward on a branch; redeploy once CI is green.
-> Improvement candidate: script a one-command "redeploy last-good" to cut MTTR.
+> One-command helper: `scripts/redeploy-last-good.sh` finds the most recent main commit with green CI and prints the rollback plan (dry run by default). Add `--deploy` to actually roll production back, or `--sha <commit>` to target a specific known-good commit.
 
 ### 4.5 MP-05 — Alexa Lambda failure (SEV2/SEV3)
 **Detect:** reminders not set / voice records fail; `deploy-lambda` job failing.
