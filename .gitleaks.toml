@@ -1,0 +1,7 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Documented access-code placeholder in the public environment template"
+paths = ['''web/\.env\.example''']
+regexes = ['''replace-with-at-least-16-characters''']

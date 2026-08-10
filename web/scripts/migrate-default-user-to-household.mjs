@@ -4,6 +4,10 @@ import { pathToFileURL } from 'node:url'
 
 const HOUSEHOLD_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{2,63}$/
 
+/**
+ * @param {string[]} argv
+ * @param {Record<string, string | undefined>} env
+ */
 export function parseMigrationOptions(argv = process.argv.slice(2), env = process.env) {
   const write = argv.includes('--write')
   const sourceUserId = env.SOURCE_USER_ID || env.USER_ID || 'default-user'
