@@ -13,10 +13,12 @@ const originalEnv = {
 }
 
 test.before(() => {
-  process.env.NODE_ENV = 'production'
-  process.env.MVP_ACCESS_CODE = 'family-access-code-1234'
-  process.env.MVP_SESSION_SECRET = 'a-session-secret-that-is-longer-than-thirty-two-characters'
-  process.env.WEB_AUTH_MODE = 'mvp'
+  Object.assign(process.env, {
+    NODE_ENV: 'production',
+    MVP_ACCESS_CODE: 'family-access-code-1234',
+    MVP_SESSION_SECRET: 'a-session-secret-that-is-longer-than-thirty-two-characters',
+    WEB_AUTH_MODE: 'mvp',
+  })
 })
 
 test.after(() => {
