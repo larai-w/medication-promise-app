@@ -4,12 +4,24 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { DEFAULT_MEDICATION_SETTINGS, type MedicationSettings } from '@/lib/settings'
 
+interface DeletionInfo {
+  available: boolean
+  confirmation: string
+  recovery: string
+  externalData: string
+}
+
 export default function SettingsScreen() {
   const [settings, setSettings] = useState<MedicationSettings>(DEFAULT_MEDICATION_SETTINGS)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [deletionInfo, setDeletionInfo] = useState<DeletionInfo | null>(null)
+  const [deletionConfirmation, setDeletionConfirmation] = useState('')
+  const [understandsRecovery, setUnderstandsRecovery] = useState(false)
+  const [understandsExternalData, setUnderstandsExternalData] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     async function loadSettings() {
@@ -31,6 +43,11 @@ export default function SettingsScreen() {
     }
 
     void loadSettings()
+
+    fetch('/api/account/data', { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : null)
+      .then((body) => setDeletionInfo(body as DeletionInfo | null))
+      .catch(() => setDeletionInfo(null))
   }, [])
 
   const updateTime = (index: number, time: string) => {
@@ -64,6 +81,30 @@ export default function SettingsScreen() {
       setError(cause instanceof Error ? cause.message : '設定を保存できませんでした')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDeleteAccountData = async () => {
+    if (!deletionInfo?.available || deleting) return
+    setDeleting(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const response = await fetch('/api/account/data', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          confirmation: deletionConfirmation,
+          understandsRecovery,
+          understandsExternalData,
+        }),
+      })
+      const body = await response.json() as { error?: string }
+      if (!response.ok) throw new Error(body.error || '削除を完了できませんでした')
+      window.location.assign('/login?deleted=1')
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : '削除を完了できませんでした')
+      setDeleting(false)
     }
   }
 
@@ -131,6 +172,65 @@ export default function SettingsScreen() {
                 className="w-full rounded-xl bg-indigo-700 text-white py-3 font-medium hover:bg-indigo-800 disabled:opacity-60"
               >
                 {saving ? '保存中...' : '設定を保存'}
+              </button>
+            </div>
+          )}
+        </section>
+
+        <section className="bg-white border border-red-200 p-5 shadow-sm">
+          <h2 className="text-base font-semibold text-gray-900 mb-2">データの削除</h2>
+          {!deletionInfo?.available ? (
+            <p className="text-sm text-gray-600 leading-6">
+              世帯データの一括削除は現在準備中です。個別の服薬記録は履歴画面から削除できます。
+            </p>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-700 leading-6">
+                服薬記録、薬名と時刻の設定、アプリ内のアカウント連携情報を削除します。この操作後は元に戻せません。
+              </p>
+              <label className="flex items-start gap-3 text-sm text-gray-700 leading-6">
+                <input
+                  type="checkbox"
+                  checked={understandsRecovery}
+                  onChange={(event) => setUnderstandsRecovery(event.target.checked)}
+                  className="mt-1 size-5 shrink-0"
+                />
+                <span>{deletionInfo.recovery}</span>
+              </label>
+              <label className="flex items-start gap-3 text-sm text-gray-700 leading-6">
+                <input
+                  type="checkbox"
+                  checked={understandsExternalData}
+                  onChange={(event) => setUnderstandsExternalData(event.target.checked)}
+                  className="mt-1 size-5 shrink-0"
+                />
+                <span>{deletionInfo.externalData}</span>
+              </label>
+              <div>
+                <label htmlFor="deletionConfirmation" className="block text-sm font-medium text-gray-800 mb-2">
+                  確認のため「{deletionInfo.confirmation}」と入力してください
+                </label>
+                <input
+                  id="deletionConfirmation"
+                  type="text"
+                  value={deletionConfirmation}
+                  onChange={(event) => setDeletionConfirmation(event.target.value)}
+                  autoComplete="off"
+                  className="w-full border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-red-600"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleDeleteAccountData}
+                disabled={
+                  deleting
+                  || deletionConfirmation !== deletionInfo.confirmation
+                  || !understandsRecovery
+                  || !understandsExternalData
+                }
+                className="w-full bg-red-700 text-white py-3 font-medium hover:bg-red-800 disabled:opacity-50"
+              >
+                {deleting ? '削除中...' : '世帯データを削除'}
               </button>
             </div>
           )}

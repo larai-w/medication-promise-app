@@ -38,6 +38,8 @@ export default $config({
         HOUSEHOLD_ID: 'owner-household',
         HOUSEHOLD_PARTITION_MODE: 'household',
         WEB_AUTH_MODE: 'cognito',
+        // Alexa household cutover and legacy-partition disposition are release gates.
+        ACCOUNT_DELETION_ENABLED: 'false',
         APP_ORIGIN: 'https://kusuri.veai.jp',
         COGNITO_USER_POOL_ID: cognitoUserPoolId.value,
         COGNITO_WEB_CLIENT_ID: cognitoWebClientId.value,

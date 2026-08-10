@@ -33,6 +33,27 @@ function computeStreak(allRecords: MedicationRecord[]): number {
   return streak
 }
 
+// 過去(取得範囲内)で最も長く連続した日数。バッジ判定に使い、1日空いても
+// 一度得た達成が「剥奪」されないようにする（達成は減らない前提）。
+function computeMaxStreak(allRecords: MedicationRecord[]): number {
+  if (allRecords.length === 0) return 0
+  const uniqueDates = [...new Set(allRecords.map(r => r.date))].sort()
+  let max = 1
+  let run = 1
+  for (let i = 1; i < uniqueDates.length; i++) {
+    const prev = new Date(uniqueDates[i - 1] + 'T00:00:00Z').getTime()
+    const curr = new Date(uniqueDates[i] + 'T00:00:00Z').getTime()
+    const diffDays = Math.round((curr - prev) / 86400000)
+    if (diffDays === 1) {
+      run++
+      if (run > max) max = run
+    } else {
+      run = 1
+    }
+  }
+  return max
+}
+
 function buildDailyBreakdown(records: MedicationRecord[]): DailyBreakdown {
   const breakdown: DailyBreakdown = {}
   for (const r of records) {
@@ -90,21 +111,21 @@ function generateMessage(
   if (streak >= 7) {
     return {
       emoji: '🏆',
-      text: `${streak}日連続達成！すごい！このまま perfect week を目指そう`,
+      text: `${streak}日つづいています。よいリズムですね。`,
       type: 'celebrate',
     }
   }
   if (streak >= 3) {
     return {
-      emoji: '🔥',
-      text: `${streak}日連続！もう少しで1週間！今日も忘れずに！`,
+      emoji: '🌱',
+      text: `${streak}日つづいています。いいペースです。`,
       type: 'encourage',
     }
   }
   if (streak > 0 && todayCompleted < TIMINGS.length) {
     return {
-      emoji: '💪',
-      text: `${streak}日連続中！今日もあと${TIMINGS.length - todayCompleted}回！`,
+      emoji: '🍵',
+      text: `きょうはあと${TIMINGS.length - todayCompleted}回です。ごゆっくりどうぞ。`,
       type: 'encourage',
     }
   }
@@ -115,7 +136,7 @@ function generateMessage(
     const weakNames = weakTimings.map(s => s.timing).join('・')
     return {
       emoji: '👀',
-      text: `${weakNames}の服薬率が${weakTimings[0].rate}%です。気をつけて！`,
+      text: `${weakNames}は記録が少なめのようです。難しいときは無理なさらず。`,
       type: 'warning',
     }
   }
@@ -124,7 +145,7 @@ function generateMessage(
   if (todayCompleted === 0) {
     return {
       emoji: '⏰',
-      text: '今日はまだ記録がないよ！朝のお薬から始めよう',
+      text: 'きょうはまだ記録がありません。朝のお薬からどうぞ。',
       type: 'nudge',
     }
   }
@@ -132,7 +153,7 @@ function generateMessage(
   // デフォルト
   return {
     emoji: '📝',
-    text: '今日もお薬を忘れずに！コツコツ続けよう',
+    text: 'きょうもマイペースで大丈夫です。記録を残しておきましょう。',
     type: 'encourage',
   }
 }
@@ -161,26 +182,22 @@ export async function GET(request: Request) {
 
   // 統計
   const streak = computeStreak(records)
+  const maxStreak = computeMaxStreak(records)
   const totalDays = 30
   const timingStats = computeTimingStats(records, totalDays)
   const monthlyRate = computeMonthlyRate(records)
   const message = generateMessage(streak, timingStats, todayCompleted)
 
-  // おどし: streakが途切れそうなとき
+  // 未記録のときの、そっとしたリマインダー。連続記録の喪失をちらつかせる「おどし」はしない。
+  // （変数名はレスポンス互換のため threat のまま。中身は非・脅しの穏やかな一言。）
   let threat: string | null = null
-  if (streak > 0 && todayCompleted === 0) {
-    if (streak >= 7) {
-      threat = `🔥 ${streak}日連続がかかってるよ！今日飲まないとリセットされちゃう！`
-    } else if (streak >= 3) {
-      threat = `💥 ${streak}日連続、今日で${streak + 1}日！あと${7 - streak}日で1週間だよ！`
-    } else {
-      threat = `⚠️ 連続記録が止まっちゃう！今日も忘れずにね`
-    }
+  if (todayCompleted === 0) {
+    threat = 'きょうのお薬の記録は、まだのようです。よろしければ、ゆっくりどうぞ。'
   }
 
   // バッジ
   const perfectDays = countPerfectDays(records)
-  const badges = computeBadges({ streak, timingStats, monthlyRate: monthlyRate.rate, perfectDays })
+  const badges = computeBadges({ streak, maxStreak, timingStats, monthlyRate: monthlyRate.rate, perfectDays })
 
   return Response.json({
     streak,
