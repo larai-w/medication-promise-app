@@ -59,6 +59,7 @@
 |--------|--------|-----------------|----------------|
 | Web Lambda `Errors` | ap-northeast-1 | 1 or more in 1 minute | Check the latest deploy and server logs; use MP-04 if change-related. |
 | Web Lambda `Throttles` | ap-northeast-1 | 1 or more in 1 minute | Check concurrency and request bursts before raising limits. |
+| Cognito operational failures | ap-northeast-1 | 1 or more in 5 minutes | Check Cognito configuration, callback exchange, and membership lookup; use MP-03. |
 | Records table `SystemErrors` | us-east-1 | 1 or more in 1 minute | Treat failed writes as SEV1 and follow MP-01. |
 | Records table `ThrottledRequests` | us-east-1 | 1 or more in 1 minute | Confirm on-demand mode and follow MP-01. |
 | Alexa Lambda `Errors` / `Throttles` | us-east-1 | Existing production alarms | Follow MP-05. |

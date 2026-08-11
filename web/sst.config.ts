@@ -92,6 +92,10 @@ export default $config({
       threshold: 1,
       treatMissingData: 'notBreaching',
     }
+    const webLogGroupName = web.nodes.server.nodes.logGroup.apply((logGroup) => {
+      if (!logGroup) throw new Error('Web server log group is required for auth monitoring')
+      return logGroup.name
+    })
 
     // Reuse the already-confirmed ecosystem alert topics; do not create or enroll
     // a new email/SNS destination implicitly.
@@ -112,6 +116,27 @@ export default $config({
       namespace: 'AWS/Lambda',
       metricName: 'Throttles',
       dimensions: { FunctionName: web.nodes.server.name },
+      alarmActions: [tokyoAlertTopicArn],
+    })
+
+    new aws.cloudwatch.LogMetricFilter('AuthenticationOperationalFailures', {
+      name: `${$app.name}-${$app.stage}-auth-operational-failures`,
+      logGroupName: webLogGroupName,
+      pattern: '"AUTH_OPERATIONAL_FAILURE"',
+      metricTransformation: {
+        name: 'AuthenticationOperationalFailures',
+        namespace: 'DrugAndOath/Operational',
+        value: '1',
+      },
+    })
+
+    new aws.cloudwatch.MetricAlarm('AuthenticationOperationalFailureAlarm', {
+      ...alarmDefaults,
+      name: `${$app.name}-${$app.stage}-auth-operational-failures`,
+      alarmDescription: 'Cognito configuration, callback, or membership lookup failed.',
+      namespace: 'DrugAndOath/Operational',
+      metricName: 'AuthenticationOperationalFailures',
+      period: 300,
       alarmActions: [tokyoAlertTopicArn],
     })
 

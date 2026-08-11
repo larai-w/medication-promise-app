@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     })
     return response
   } catch {
-    console.error('Cognito callback failed')
+    console.error('AUTH_OPERATIONAL_FAILURE Cognito callback failed')
     return failedCallback()
   }
 }
