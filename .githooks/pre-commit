@@ -1,19 +1,26 @@
 #!/bin/sh
-# Local first-line defense: block internal/private files from being committed to
-# this PUBLIC repo. Mirrors the required CI check (private-files) so mistakes are
-# caught before push, not only at CI.
-#
-# Enable once per clone:
-#   git config core.hooksPath .githooks
-#
-# Keep strategy / growth / roadmap / handoff / session / task / draft notes in the
-# private workspace (veai-private), never here.
+set -eu
 
-if command -v node >/dev/null 2>&1; then
-  node scripts/check-publication-boundary.mjs || {
-    echo "pre-commit: publication boundary check failed — keep internal files in the private workspace (veai-private)." >&2
+# This public repository needs both boundary and secret checks. Do not replace one
+# with the other: the publication guard catches private work material that is not a
+# conventional secret, while gitleaks scans staged content for credentials.
+if ! command -v node >/dev/null 2>&1; then
+  echo "pre-commit blocked: node is required for the publication boundary check." >&2
+  exit 1
+fi
+
+node scripts/check-publication-boundary.mjs || {
+  echo "pre-commit blocked: keep private material in veai-private." >&2
+  exit 1
+}
+
+if command -v gitleaks >/dev/null 2>&1; then
+  if ! gitleaks git --pre-commit --staged --redact; then
+    echo ""
+    echo "pre-commit blocked: gitleaks detected a staged secret."
+    echo "Remove or rotate the secret; do not bypass this hook."
     exit 1
-  }
+  fi
 else
-  echo "pre-commit: node not found; skipping publication boundary check (CI still enforces it)." >&2
+  echo "warning: gitleaks is unavailable; install it to enable the staged secret scan."
 fi
