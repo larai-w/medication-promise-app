@@ -27,8 +27,15 @@ export default $config({
     // DynamoDB だけクロスリージョンで us-east-1 を参照する。
     const tableArn =
       'arn:aws:dynamodb:us-east-1:339712703146:table/DrugAndOathRecords'
+    // ADR-0007はProposed。権限候補はあるが収集は明示的に無効化する。
+    const metricsTableArn =
+      'arn:aws:dynamodb:us-east-1:339712703146:table/veai-ben004-metrics'
+    const tokyoAlertTopicArn =
+      'arn:aws:sns:ap-northeast-1:339712703146:veai-ecosystem-alerts'
+    const virginiaAlertTopicArn =
+      'arn:aws:sns:us-east-1:339712703146:veai-ecosystem-alerts'
 
-    new sst.aws.Nextjs('Web', {
+    const web = new sst.aws.Nextjs('Web', {
       path: '.',
       domain: 'kusuri.veai.jp',
       environment: {
@@ -47,6 +54,8 @@ export default $config({
         MVP_ACCESS_GATE: 'enabled',
         MVP_ACCESS_CODE: mvpAccessCode.value,
         MVP_SESSION_SECRET: mvpSessionSecret.value,
+        METRICS_TABLE: 'veai-ben004-metrics',
+        METRICS_COLLECTION_ENABLED: 'false',
       },
       // サーバー Lambda に既存 DynamoDB テーブルへの最小権限を付与 + Bedrock
       permissions: [
@@ -62,12 +71,95 @@ export default $config({
           resources: [tableArn, `${tableArn}/index/*`],
         },
         {
+          // BEN-004 メトリクス書き込み（PutItemのみ・最小権限）
+          actions: ['dynamodb:PutItem'],
+          resources: [metricsTableArn],
+        },
+        {
           actions: [
             'bedrock:InvokeModel',
           ],
           resources: ['arn:aws:bedrock:ap-northeast-1::foundation-model/anthropic.claude-3-haiku-20240307-v1:0'],
         },
       ],
+    })
+
+    const alarmDefaults = {
+      comparisonOperator: 'GreaterThanOrEqualToThreshold',
+      evaluationPeriods: 1,
+      period: 60,
+      statistic: 'Sum',
+      threshold: 1,
+      treatMissingData: 'notBreaching',
+    }
+    const webLogGroupName = web.nodes.server.nodes.logGroup.apply((logGroup) => {
+      if (!logGroup) throw new Error('Web server log group is required for auth monitoring')
+      return logGroup.name
+    })
+
+    // Reuse the already-confirmed ecosystem alert topics; do not create or enroll
+    // a new email/SNS destination implicitly.
+    new aws.cloudwatch.MetricAlarm('WebServerErrors', {
+      ...alarmDefaults,
+      name: `${$app.name}-${$app.stage}-web-errors`,
+      alarmDescription: 'The medication-promise web Lambda returned an error.',
+      namespace: 'AWS/Lambda',
+      metricName: 'Errors',
+      dimensions: { FunctionName: web.nodes.server.name },
+      alarmActions: [tokyoAlertTopicArn],
+    })
+
+    new aws.cloudwatch.MetricAlarm('WebServerThrottles', {
+      ...alarmDefaults,
+      name: `${$app.name}-${$app.stage}-web-throttles`,
+      alarmDescription: 'The medication-promise web Lambda was throttled.',
+      namespace: 'AWS/Lambda',
+      metricName: 'Throttles',
+      dimensions: { FunctionName: web.nodes.server.name },
+      alarmActions: [tokyoAlertTopicArn],
+    })
+
+    new aws.cloudwatch.LogMetricFilter('AuthenticationOperationalFailures', {
+      name: `${$app.name}-${$app.stage}-auth-operational-failures`,
+      logGroupName: webLogGroupName,
+      pattern: '"AUTH_OPERATIONAL_FAILURE"',
+      metricTransformation: {
+        name: 'AuthenticationOperationalFailures',
+        namespace: 'DrugAndOath/Operational',
+        value: '1',
+      },
+    })
+
+    new aws.cloudwatch.MetricAlarm('AuthenticationOperationalFailureAlarm', {
+      ...alarmDefaults,
+      name: `${$app.name}-${$app.stage}-auth-operational-failures`,
+      alarmDescription: 'Cognito configuration, callback, or membership lookup failed.',
+      namespace: 'DrugAndOath/Operational',
+      metricName: 'AuthenticationOperationalFailures',
+      period: 300,
+      alarmActions: [tokyoAlertTopicArn],
+    })
+
+    new aws.cloudwatch.MetricAlarm('RecordsTableSystemErrors', {
+      ...alarmDefaults,
+      name: `${$app.name}-${$app.stage}-records-system-errors`,
+      alarmDescription: 'DynamoDB reported a server-side error for the records table.',
+      namespace: 'AWS/DynamoDB',
+      metricName: 'SystemErrors',
+      dimensions: { TableName: 'DrugAndOathRecords' },
+      region: 'us-east-1',
+      alarmActions: [virginiaAlertTopicArn],
+    })
+
+    new aws.cloudwatch.MetricAlarm('RecordsTableThrottles', {
+      ...alarmDefaults,
+      name: `${$app.name}-${$app.stage}-records-throttles`,
+      alarmDescription: 'A request to the records table was throttled.',
+      namespace: 'AWS/DynamoDB',
+      metricName: 'ThrottledRequests',
+      dimensions: { TableName: 'DrugAndOathRecords' },
+      region: 'us-east-1',
+      alarmActions: [virginiaAlertTopicArn],
     })
   },
 })

@@ -39,8 +39,8 @@ export async function GET(request: Request) {
     response.cookies.set(OAUTH_VERIFIER_COOKIE, verifier, cookieOptions)
     response.headers.set('Cache-Control', 'no-store')
     return response
-  } catch (error) {
-    console.error('Cognito login configuration error:', error instanceof Error ? error.message : 'unknown')
+  } catch {
+    console.error('AUTH_OPERATIONAL_FAILURE Cognito login configuration error')
     try {
       return NextResponse.redirect(loginUrl('configuration'))
     } catch {

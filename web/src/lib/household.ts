@@ -94,6 +94,7 @@ export async function resolveRequestHousehold(
     const lookup = dependencies.getMembershipsBySubject ?? getHouseholdMembershipsBySubject
     memberships = await lookup(session.subject)
   } catch {
+    console.error('AUTH_OPERATIONAL_FAILURE Cognito membership lookup failed')
     throw new HouseholdAuthError('現在ログインを利用できません。管理者へご連絡ください。', 503)
   }
 

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { DEFAULT_MEDICATION_SETTINGS, type MedicationSettings } from '@/lib/settings'
+import { hasMetricsConsent, setMetricsConsent } from '@/lib/metrics/record-time-tracker'
 
 interface DeletionInfo {
   available: boolean
@@ -17,6 +18,7 @@ export default function SettingsScreen() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [metricsConsent, setMetricsConsentState] = useState(false)
   const [deletionInfo, setDeletionInfo] = useState<DeletionInfo | null>(null)
   const [deletionConfirmation, setDeletionConfirmation] = useState('')
   const [understandsRecovery, setUnderstandsRecovery] = useState(false)
@@ -24,6 +26,7 @@ export default function SettingsScreen() {
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
+    const consentTimer = window.setTimeout(() => setMetricsConsentState(hasMetricsConsent()), 0)
     async function loadSettings() {
       setLoading(true)
       setError(null)
@@ -43,11 +46,12 @@ export default function SettingsScreen() {
     }
 
     void loadSettings()
-
     fetch('/api/account/data', { cache: 'no-store' })
       .then((response) => response.ok ? response.json() : null)
       .then((body) => setDeletionInfo(body as DeletionInfo | null))
       .catch(() => setDeletionInfo(null))
+
+    return () => window.clearTimeout(consentTimer)
   }, [])
 
   const updateTime = (index: number, time: string) => {
@@ -113,11 +117,11 @@ export default function SettingsScreen() {
       <header className="bg-indigo-700 text-white px-4 py-4 flex items-center justify-between sticky top-0 z-10 shadow-md">
         <h1 className="text-xl font-bold tracking-wide">設定</h1>
         <div className="flex items-center gap-2">
-          <Link href="/" className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors">
+          <Link href="/" className="inline-flex min-h-11 items-center rounded-full bg-white/20 px-3 text-sm transition-colors hover:bg-white/30">
             メイン画面
           </Link>
           <form action="/api/access/logout" method="post">
-            <button type="submit" className="text-xs text-white/80 hover:text-white px-2 py-1.5">終了</button>
+            <button type="submit" className="min-h-11 px-3 text-xs text-white/80 hover:text-white">終了</button>
           </form>
         </div>
       </header>
@@ -159,17 +163,35 @@ export default function SettingsScreen() {
                       type="time"
                       value={item.time}
                       onChange={(event) => updateTime(index, event.target.value)}
-                      className="rounded-xl border border-gray-300 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="min-h-11 rounded-xl border border-gray-300 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </label>
                 ))}
               </div>
 
+              <label className="flex min-h-11 cursor-pointer items-start gap-3 border-t border-gray-200 pt-5">
+                <input
+                  type="checkbox"
+                  checked={metricsConsent}
+                  onChange={(event) => {
+                    setMetricsConsent(event.target.checked)
+                    setMetricsConsentState(event.target.checked)
+                  }}
+                  className="mt-1 size-5 accent-indigo-700"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-gray-800">任意の利用統計を送信する</span>
+                  <span className="mt-1 block text-xs leading-5 text-gray-500">
+                    保存にかかった時間だけを送信します。薬名、記録内容、端末を追跡するIDは送信しません。
+                  </span>
+                </span>
+              </label>
+
               <button
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="w-full rounded-xl bg-indigo-700 text-white py-3 font-medium hover:bg-indigo-800 disabled:opacity-60"
+                className="min-h-11 w-full rounded-xl bg-indigo-700 py-3 font-medium text-white hover:bg-indigo-800 disabled:opacity-60"
               >
                 {saving ? '保存中...' : '設定を保存'}
               </button>
@@ -177,37 +199,37 @@ export default function SettingsScreen() {
           )}
         </section>
 
-        <section className="bg-white border border-red-200 p-5 shadow-sm">
-          <h2 className="text-base font-semibold text-gray-900 mb-2">データの削除</h2>
+        <section className="rounded-2xl border border-red-200 bg-white p-5 shadow-sm">
+          <h2 className="mb-2 text-base font-semibold text-gray-900">データの削除</h2>
           {!deletionInfo?.available ? (
-            <p className="text-sm text-gray-600 leading-6">
-              世帯データの一括削除は現在準備中です。個別の服薬記録は履歴画面から削除できます。
+            <p className="text-sm leading-6 text-gray-600">
+              世帯データの一括削除は現在準備中です。個別の記録は、各記録の詳細から削除できます。
             </p>
           ) : (
             <div className="space-y-4">
-              <p className="text-sm text-gray-700 leading-6">
-                服薬記録、薬名と時刻の設定、アプリ内のアカウント連携情報を削除します。この操作後は元に戻せません。
+              <p className="text-sm leading-6 text-gray-700">
+                記録、薬名と時刻の設定、アプリ内のアカウント連携情報を削除します。この操作後は元に戻せません。
               </p>
-              <label className="flex items-start gap-3 text-sm text-gray-700 leading-6">
+              <label className="flex min-h-11 cursor-pointer items-start gap-3 text-sm leading-6 text-gray-700">
                 <input
                   type="checkbox"
                   checked={understandsRecovery}
                   onChange={(event) => setUnderstandsRecovery(event.target.checked)}
-                  className="mt-1 size-5 shrink-0"
+                  className="mt-1 size-5 shrink-0 accent-red-700"
                 />
                 <span>{deletionInfo.recovery}</span>
               </label>
-              <label className="flex items-start gap-3 text-sm text-gray-700 leading-6">
+              <label className="flex min-h-11 cursor-pointer items-start gap-3 text-sm leading-6 text-gray-700">
                 <input
                   type="checkbox"
                   checked={understandsExternalData}
                   onChange={(event) => setUnderstandsExternalData(event.target.checked)}
-                  className="mt-1 size-5 shrink-0"
+                  className="mt-1 size-5 shrink-0 accent-red-700"
                 />
                 <span>{deletionInfo.externalData}</span>
               </label>
               <div>
-                <label htmlFor="deletionConfirmation" className="block text-sm font-medium text-gray-800 mb-2">
+                <label htmlFor="deletionConfirmation" className="mb-2 block text-sm font-medium text-gray-800">
                   確認のため「{deletionInfo.confirmation}」と入力してください
                 </label>
                 <input
@@ -216,7 +238,7 @@ export default function SettingsScreen() {
                   value={deletionConfirmation}
                   onChange={(event) => setDeletionConfirmation(event.target.value)}
                   autoComplete="off"
-                  className="w-full border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-red-600"
+                  className="min-h-11 w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-red-600"
                 />
               </div>
               <button
@@ -228,7 +250,7 @@ export default function SettingsScreen() {
                   || !understandsRecovery
                   || !understandsExternalData
                 }
-                className="w-full bg-red-700 text-white py-3 font-medium hover:bg-red-800 disabled:opacity-50"
+                className="min-h-11 w-full rounded-xl bg-red-700 py-3 font-medium text-white hover:bg-red-800 disabled:opacity-50"
               >
                 {deleting ? '削除中...' : '世帯データを削除'}
               </button>

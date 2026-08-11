@@ -1,6 +1,6 @@
 # Incident Response Runbook
 
-**Status:** Initial version
+**Status:** Operational draft
 **Scope:** Production incident handling for the household Web app (Next.js / OpenNext / SST) and the Alexa Lambda.
 **Audience:** On-call operator / incident responder.
 **Related:** [Web Cognito authentication runbook](WEB_COGNITO_AUTH_RUNBOOK.md) · [Household identity design](HOUSEHOLD_IDENTITY_DESIGN.md) · [Alexa linked device verification](ALEXA_LINKED_DEVICE_VERIFICATION.md)
@@ -52,6 +52,23 @@
    - Last web deploy: did a recent `npm run deploy` precede the incident? If yes → §4.4 redeploy last-good.
 4. **Decide: stop the bleeding vs diagnose.** If a change caused it, **roll back / redeploy last-good first**, diagnose after. This is the main MTTR lever.
 5. **Record a timeline** (detection time, actions, recovery time) for the postmortem — needed to move MTTR off "Low".
+
+### Monitoring baseline
+
+| Signal | Region | Alarm threshold | First response |
+|--------|--------|-----------------|----------------|
+| Web Lambda `Errors` | ap-northeast-1 | 1 or more in 1 minute | Check the latest deploy and server logs; use MP-04 if change-related. |
+| Web Lambda `Throttles` | ap-northeast-1 | 1 or more in 1 minute | Check concurrency and request bursts before raising limits. |
+| Cognito operational failures | ap-northeast-1 | 1 or more in 5 minutes | Check Cognito configuration, callback exchange, and membership lookup; use MP-03. |
+| Records table `SystemErrors` | us-east-1 | 1 or more in 1 minute | Treat failed writes as SEV1 and follow MP-01. |
+| Records table `ThrottledRequests` | us-east-1 | 1 or more in 1 minute | Confirm on-demand mode and follow MP-01. |
+| Alexa Lambda `Errors` / `Throttles` | us-east-1 | Existing production alarms | Follow MP-05. |
+
+The four Web/records alarms are defined in `web/sst.config.ts`, so their Lambda
+dimension follows the generated function name across deployments. Alarm notification
+actions are attached only during the reviewed production step; defining an email or SNS
+destination is never implicit. Before relying on MP-01 recovery, verify that PITR is
+enabled on `DrugAndOathRecords` and perform a synthetic restore rehearsal.
 
 ---
 

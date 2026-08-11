@@ -16,6 +16,7 @@ import AddEditModal from './AddEditModal'
 import RecentList from './RecentList'
 import WeeklyReport from './WeeklyReport'
 import type { Badge } from '@/lib/badges'
+import { medpromiseTracker } from '@/lib/metrics/record-time-tracker'
 
 interface ModalState {
   mode: 'add' | 'edit'
@@ -166,6 +167,7 @@ export default function MainScreen() {
   }
 
   const handleQuickRecord = async (timing: Timing) => {
+    medpromiseTracker.start()
     try {
       const res = await fetch('/api/records', {
         method: 'POST',
@@ -174,8 +176,10 @@ export default function MainScreen() {
       })
       if (res.status === 401) window.location.assign('/login')
       if (!res.ok) throw new Error()
+      void medpromiseTracker.stop()
       await Promise.all([fetchToday(), fetchInsights()])
     } catch {
+      medpromiseTracker.cancel()
       setError('記録の保存に失敗しました。もう一度お試しください。')
     }
   }
@@ -197,6 +201,7 @@ export default function MainScreen() {
   }
 
   const handleSave = async (data: SaveData, editId?: string) => {
+    medpromiseTracker.start()
     try {
       let res: Response
       if (editId) {
@@ -213,9 +218,11 @@ export default function MainScreen() {
         })
       }
       if (!res.ok) throw new Error()
+      void medpromiseTracker.stop()
       setModalState(null)
       await fetchAll()
     } catch {
+      medpromiseTracker.cancel()
       setError('保存に失敗しました。もう一度お試しください。')
     }
   }
@@ -232,20 +239,20 @@ export default function MainScreen() {
           >
             {theme === 'light' ? '☀️' : theme === 'dark' ? '🌙' : '🌓'}
           </button>
-          <Link href="/monthly" className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors" aria-label="月間表示">
+          <Link href="/monthly" className="inline-flex min-h-11 items-center rounded-full bg-white/20 px-3 text-sm transition-colors hover:bg-white/30" aria-label="月間表示">
             月間表示
           </Link>
-          <Link href="/settings" className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors" aria-label="設定">
+          <Link href="/settings" className="inline-flex min-h-11 items-center rounded-full bg-white/20 px-3 text-sm transition-colors hover:bg-white/30" aria-label="設定">
             設定
           </Link>
           <form action="/api/access/logout" method="post">
-            <button type="submit" className="text-xs text-white/80 hover:text-white px-2 py-1.5" aria-label="ログアウト">終了</button>
+            <button type="submit" className="min-h-11 px-3 text-xs text-white/80 hover:text-white" aria-label="ログアウト">終了</button>
           </form>
         </div>
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 space-y-6 pb-16">
-        {/* Duo式メッセージ */}
+        {/* 記録を支えるメッセージ */}
         {insights?.message && (
           <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${messageBg(insights.message.type)}`} role="status">
             <span className="text-2xl" aria-hidden="true">{insights.message.emoji}</span>
@@ -253,7 +260,7 @@ export default function MainScreen() {
           </div>
         )}
 
-        {/* おどし（未記録でstreachがかかってるとき） */}
+        {/* 記録がない日に表示する穏やかな案内 */}
         {insights?.threat && completedCount === 0 && (
           <div className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700 text-orange-700 dark:text-orange-300 animate-fade-slide-up" role="alert">
             <p className="text-sm font-medium">{insights.threat}</p>
@@ -290,12 +297,12 @@ export default function MainScreen() {
         {/* 週間レポート */}
         {!loading && <WeeklyReport />}
 
-        {/* 月間完了率 */}
+        {/* 月間の記録状況 */}
         {insights && !loading && (
           <div className="flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
             <span className="text-sm text-gray-500 dark:text-gray-400">今月</span>
             <div className="flex-1">
-              <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden" role="progressbar" aria-valuenow={insights.monthlyRate.rate} aria-valuemin={0} aria-valuemax={100} aria-label="今月の記録状況">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${
                     insights.monthlyRate.rate >= 80 ? 'bg-green-500' : insights.monthlyRate.rate >= 50 ? 'bg-yellow-500' : 'bg-red-400'

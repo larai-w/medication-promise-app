@@ -5,8 +5,8 @@ on:
   push:
     branches: [main]
   schedule:
-    # Monday 03:29 JST. The non-round minute avoids peak scheduler load.
-    - cron: '29 18 * * 0'
+    # Monday 03:17 JST (Sunday 18:17 UTC)
+    - cron: '17 18 * * 0'
   workflow_dispatch:
 
 permissions:
