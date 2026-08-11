@@ -2,7 +2,7 @@ import LegalDocument from '@/components/LegalDocument'
 
 export default function TermsPage() {
   return (
-    <LegalDocument title="限定テスト利用条件" updated="2026年7月15日">
+    <LegalDocument title="限定テスト利用条件" updated="2026年8月11日">
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">1. 限定テスト</h2>
         <p>おくすりの約束は、招待されたご家族を対象とする開発中の限定テスト版です。機能の変更、停止、記録の不具合が起こる可能性があります。</p>
@@ -16,8 +16,8 @@ export default function TermsPage() {
         <p>体調の急変、誤薬、重複服用などが疑われる場合は、本サービスの応答を待たず、医療機関、救急相談窓口、担当の医療・介護職など適切な連絡先へ相談してください。</p>
       </section>
       <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">4. アクセスコード</h2>
-        <p>アクセスコードは同じ世帯のテスト参加者だけで利用し、公開しないでください。不正利用が疑われる場合は、運営者がコードを変更または利用を停止することがあります。</p>
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">4. 招待アカウント</h2>
+        <p>招待アカウントの認証情報は他の世帯と共有せず、公開しないでください。不正利用が疑われる場合は、運営者が利用を停止することがあります。</p>
       </section>
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">5. 記録の確認</h2>

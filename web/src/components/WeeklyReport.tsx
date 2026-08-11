@@ -50,7 +50,7 @@ export default function WeeklyReport() {
       </p>
       {data.source === 'ai' && (
         <p className="mt-2 text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed">
-          このレポートはAIが記録データから自動生成したものです。内容に誤りがある場合があります。体調や服薬について気になることがあれば、医師・薬剤師にご相談ください。
+          このレポートはAIが記録データから自動生成した下書きです。ご本人・ご家族が内容を確認し、服薬の判断には使わないでください。体調や服薬について気になることがあれば、医師・薬剤師にご相談ください。
         </p>
       )}
     </div>

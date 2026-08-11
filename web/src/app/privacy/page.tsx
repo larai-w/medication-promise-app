@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       </section>
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">4. 保存と外部サービス</h2>
-        <p>記録の保存とアプリの運用にはAmazon Web Servicesを、音声操作にはAmazon Alexaを利用します。削除後も、障害復旧用バックアップには設定された復旧期間中データが残る場合があります。バックアップは通常の画面から参照できません。法令上必要な場合を除き、目的なく第三者へ情報を提供しません。</p>
+        <p>記録と設定は限定テストへの参加中、または削除を依頼するまで保存します。本人が任意で許可した保存時間の統計は35日以内に自動削除します。記録の保存とアプリの運用にはAmazon Web Servicesを、音声操作にはAmazon Alexaを利用します。削除後も、障害復旧用バックアップには設定された復旧期間中データが残る場合があります。バックアップは通常の画面から参照できません。法令上必要な場合を除き、目的なく第三者へ情報を提供しません。</p>
       </section>
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">5. 削除と問い合わせ</h2>
