@@ -31,7 +31,7 @@ export default $config({
     const metricsTableArn =
       'arn:aws:dynamodb:us-east-1:339712703146:table/veai-ben004-metrics'
 
-    new sst.aws.Nextjs('Web', {
+    const web = new sst.aws.Nextjs('Web', {
       path: '.',
       domain: 'kusuri.veai.jp',
       environment: {
@@ -78,6 +78,55 @@ export default $config({
           resources: ['arn:aws:bedrock:ap-northeast-1::foundation-model/anthropic.claude-3-haiku-20240307-v1:0'],
         },
       ],
+    })
+
+    const alarmDefaults = {
+      comparisonOperator: 'GreaterThanOrEqualToThreshold',
+      evaluationPeriods: 1,
+      period: 60,
+      statistic: 'Sum',
+      threshold: 1,
+      treatMissingData: 'notBreaching',
+    }
+
+    // Alarm actions are intentionally configured separately at the human-gated
+    // production step so an email/SNS destination is never enrolled implicitly.
+    new aws.cloudwatch.MetricAlarm('WebServerErrors', {
+      ...alarmDefaults,
+      name: `${$app.name}-${$app.stage}-web-errors`,
+      alarmDescription: 'The medication-promise web Lambda returned an error.',
+      namespace: 'AWS/Lambda',
+      metricName: 'Errors',
+      dimensions: { FunctionName: web.nodes.server.name },
+    })
+
+    new aws.cloudwatch.MetricAlarm('WebServerThrottles', {
+      ...alarmDefaults,
+      name: `${$app.name}-${$app.stage}-web-throttles`,
+      alarmDescription: 'The medication-promise web Lambda was throttled.',
+      namespace: 'AWS/Lambda',
+      metricName: 'Throttles',
+      dimensions: { FunctionName: web.nodes.server.name },
+    })
+
+    new aws.cloudwatch.MetricAlarm('RecordsTableSystemErrors', {
+      ...alarmDefaults,
+      name: `${$app.name}-${$app.stage}-records-system-errors`,
+      alarmDescription: 'DynamoDB reported a server-side error for the records table.',
+      namespace: 'AWS/DynamoDB',
+      metricName: 'SystemErrors',
+      dimensions: { TableName: 'DrugAndOathRecords' },
+      region: 'us-east-1',
+    })
+
+    new aws.cloudwatch.MetricAlarm('RecordsTableThrottles', {
+      ...alarmDefaults,
+      name: `${$app.name}-${$app.stage}-records-throttles`,
+      alarmDescription: 'A request to the records table was throttled.',
+      namespace: 'AWS/DynamoDB',
+      metricName: 'ThrottledRequests',
+      dimensions: { TableName: 'DrugAndOathRecords' },
+      region: 'us-east-1',
     })
   },
 })
