@@ -30,6 +30,10 @@ export default $config({
     // ADR-0007はProposed。権限候補はあるが収集は明示的に無効化する。
     const metricsTableArn =
       'arn:aws:dynamodb:us-east-1:339712703146:table/veai-ben004-metrics'
+    const tokyoAlertTopicArn =
+      'arn:aws:sns:ap-northeast-1:339712703146:veai-ecosystem-alerts'
+    const virginiaAlertTopicArn =
+      'arn:aws:sns:us-east-1:339712703146:veai-ecosystem-alerts'
 
     const web = new sst.aws.Nextjs('Web', {
       path: '.',
@@ -89,8 +93,8 @@ export default $config({
       treatMissingData: 'notBreaching',
     }
 
-    // Alarm actions are intentionally configured separately at the human-gated
-    // production step so an email/SNS destination is never enrolled implicitly.
+    // Reuse the already-confirmed ecosystem alert topics; do not create or enroll
+    // a new email/SNS destination implicitly.
     new aws.cloudwatch.MetricAlarm('WebServerErrors', {
       ...alarmDefaults,
       name: `${$app.name}-${$app.stage}-web-errors`,
@@ -98,6 +102,7 @@ export default $config({
       namespace: 'AWS/Lambda',
       metricName: 'Errors',
       dimensions: { FunctionName: web.nodes.server.name },
+      alarmActions: [tokyoAlertTopicArn],
     })
 
     new aws.cloudwatch.MetricAlarm('WebServerThrottles', {
@@ -107,6 +112,7 @@ export default $config({
       namespace: 'AWS/Lambda',
       metricName: 'Throttles',
       dimensions: { FunctionName: web.nodes.server.name },
+      alarmActions: [tokyoAlertTopicArn],
     })
 
     new aws.cloudwatch.MetricAlarm('RecordsTableSystemErrors', {
@@ -117,6 +123,7 @@ export default $config({
       metricName: 'SystemErrors',
       dimensions: { TableName: 'DrugAndOathRecords' },
       region: 'us-east-1',
+      alarmActions: [virginiaAlertTopicArn],
     })
 
     new aws.cloudwatch.MetricAlarm('RecordsTableThrottles', {
@@ -127,6 +134,7 @@ export default $config({
       metricName: 'ThrottledRequests',
       dimensions: { TableName: 'DrugAndOathRecords' },
       region: 'us-east-1',
+      alarmActions: [virginiaAlertTopicArn],
     })
   },
 })
