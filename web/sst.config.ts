@@ -27,6 +27,9 @@ export default $config({
     // DynamoDB だけクロスリージョンで us-east-1 を参照する。
     const tableArn =
       'arn:aws:dynamodb:us-east-1:339712703146:table/DrugAndOathRecords'
+    // ADR-0007はProposed。権限候補はあるが収集は明示的に無効化する。
+    const metricsTableArn =
+      'arn:aws:dynamodb:us-east-1:339712703146:table/veai-ben004-metrics'
 
     new sst.aws.Nextjs('Web', {
       path: '.',
@@ -47,6 +50,8 @@ export default $config({
         MVP_ACCESS_GATE: 'enabled',
         MVP_ACCESS_CODE: mvpAccessCode.value,
         MVP_SESSION_SECRET: mvpSessionSecret.value,
+        METRICS_TABLE: 'veai-ben004-metrics',
+        METRICS_COLLECTION_ENABLED: 'false',
       },
       // サーバー Lambda に既存 DynamoDB テーブルへの最小権限を付与 + Bedrock
       permissions: [
@@ -60,6 +65,11 @@ export default $config({
             'dynamodb:BatchWriteItem',
           ],
           resources: [tableArn, `${tableArn}/index/*`],
+        },
+        {
+          // BEN-004 メトリクス書き込み（PutItemのみ・最小権限）
+          actions: ['dynamodb:PutItem'],
+          resources: [metricsTableArn],
         },
         {
           actions: [

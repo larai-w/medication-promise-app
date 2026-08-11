@@ -47,7 +47,7 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
             type="date"
             value={date}
             onChange={e => setDate(e.target.value)}
-            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="min-h-11 w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
 
@@ -58,7 +58,7 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
               <button
                 key={t}
                 onClick={() => handleTimingChange(t)}
-                className={`py-2.5 rounded-lg text-sm font-medium border-2 transition-colors ${
+                className={`min-h-11 py-2.5 rounded-lg text-sm font-medium border-2 transition-colors ${
                   timing === t
                     ? 'border-indigo-500 bg-indigo-500 text-white'
                     : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-indigo-300 dark:hover:border-indigo-500'
@@ -76,7 +76,7 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
             type="time"
             value={time}
             onChange={e => setTime(e.target.value)}
-            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="min-h-11 w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">区分を選ぶと自動でセットされます</p>
         </div>
