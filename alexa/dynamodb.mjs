@@ -1,5 +1,5 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb'
+import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb'
 import { randomUUID } from 'crypto'
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME ?? 'DrugAndOathRecords'
@@ -77,8 +77,37 @@ function toMedicationSettings(item) {
 // injectable so the data path is testable without hitting AWS.
 
 function assertHousehold(household) {
-  if (!household || typeof household.partitionKey !== 'string' || !household.partitionKey) {
+  if (
+    !household
+    || typeof household.partitionKey !== 'string'
+    || !household.partitionKey
+    || typeof household.householdId !== 'string'
+    || !household.householdId
+    || typeof household.providerSubject !== 'string'
+    || !household.providerSubject
+  ) {
     throw new Error('recordMedicationForHousehold requires a resolved household')
+  }
+}
+
+function activeMembershipCondition(household) {
+  return {
+    TableName: TABLE_NAME,
+    Key: {
+      PK: `USER#${household.providerSubject}`,
+      SK: `MEMBERSHIP#${household.householdId}`,
+    },
+    ConditionExpression: [
+      'attribute_exists(PK)',
+      'attribute_exists(SK)',
+      '(attribute_not_exists(householdId) OR householdId = :householdId)',
+      '(attribute_not_exists(#status) OR #status = :active)',
+    ].join(' AND '),
+    ExpressionAttributeNames: { '#status': 'status' },
+    ExpressionAttributeValues: {
+      ':active': 'active',
+      ':householdId': household.householdId,
+    },
   }
 }
 
@@ -88,18 +117,23 @@ export async function recordMedicationForHousehold(household, timing, { client =
   const uuid = randomUUID()
   const sk   = `RECORD#${date}T${time}:00#${uuid}`
 
-  await client.send(new PutCommand({
-    TableName: TABLE_NAME,
-    Item: {
-      PK:        household.partitionKey,
-      SK:        sk,
-      userId:    household.householdId,
-      date,
-      time,
-      timing,
-      source:    'alexa',
-      createdAt: iso,
-    },
+  await client.send(new TransactWriteCommand({
+    TransactItems: [
+      { ConditionCheck: activeMembershipCondition(household) },
+      { Put: {
+        TableName: TABLE_NAME,
+        Item: {
+          PK:        household.partitionKey,
+          SK:        sk,
+          userId:    household.householdId,
+          date,
+          time,
+          timing,
+          source:    'alexa',
+          createdAt: iso,
+        },
+      } },
+    ],
   }))
 
   return { date, time, timing }

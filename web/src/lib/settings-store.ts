@@ -1,6 +1,7 @@
-import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb'
+import { GetCommand, PutCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb'
 import { docClient, TABLE_NAME } from './dynamodb.ts'
 import type { AuthenticatedHousehold } from './household.ts'
+import { activeMembershipCondition } from './membership-write-guard.ts'
 import {
   DEFAULT_MEDICATION_SETTINGS,
   parseMedicationSettingsInput,
@@ -50,6 +51,15 @@ export async function putMedicationSettings(
     updatedAt: now,
   }
 
-  await client.send(new PutCommand({ TableName: TABLE_NAME, Item: item }))
+  if (household.partitionMode === 'household') {
+    await client.send(new TransactWriteCommand({
+      TransactItems: [
+        { ConditionCheck: activeMembershipCondition(household) },
+        { Put: { TableName: TABLE_NAME, Item: item } },
+      ],
+    }))
+  } else {
+    await client.send(new PutCommand({ TableName: TABLE_NAME, Item: item }))
+  }
   return { medicationName: item.medicationName, reminderSchedule: item.reminderSchedule, updatedAt: now }
 }

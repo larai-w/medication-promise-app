@@ -1,7 +1,15 @@
-import { DeleteCommand, PutCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb'
+import {
+  DeleteCommand,
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+  TransactWriteCommand,
+  UpdateCommand,
+} from '@aws-sdk/lib-dynamodb'
 import { randomUUID } from 'crypto'
 import { docClient, TABLE_NAME, decodeSK, encodeSK, makeSK } from './dynamodb.ts'
 import type { AuthenticatedHousehold } from './household.ts'
+import { activeMembershipCondition } from './membership-write-guard.ts'
 import type { DynamoRecord, MedicationRecord } from '../types'
 
 type QueryClient = { send(command: unknown): Promise<{ Items?: unknown[] }> }
@@ -69,7 +77,16 @@ export async function createRecordForHousehold(
     createdAt: now,
   }
 
-  await client.send(new PutCommand({ TableName: TABLE_NAME, Item: item }))
+  if (household.partitionMode === 'household') {
+    await client.send(new TransactWriteCommand({
+      TransactItems: [
+        { ConditionCheck: activeMembershipCondition(household) },
+        { Put: { TableName: TABLE_NAME, Item: item } },
+      ],
+    }))
+  } else {
+    await client.send(new PutCommand({ TableName: TABLE_NAME, Item: item }))
+  }
   return toApiRecord(item)
 }
 
@@ -89,6 +106,30 @@ export async function updateRecordForHousehold(
   if (input.timing !== undefined) { updateParts.push('timing = :timing'); values[':timing'] = input.timing }
   if (input.notes !== undefined) { updateParts.push('notes = :notes'); values[':notes'] = input.notes }
 
+  if (household.partitionMode === 'household') {
+    await client.send(new TransactWriteCommand({
+      TransactItems: [
+        { ConditionCheck: activeMembershipCondition(household) },
+        { Update: {
+          TableName: TABLE_NAME,
+          Key: { PK: household.partitionKey, SK: sk },
+          UpdateExpression: `SET ${updateParts.join(', ')}`,
+          ExpressionAttributeValues: values,
+          ConditionExpression: 'attribute_exists(PK) AND attribute_exists(SK)',
+          ...(input.time !== undefined && { ExpressionAttributeNames: { '#t': 'time' } }),
+        } },
+      ],
+    }))
+
+    const result = await client.send(new GetCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: household.partitionKey, SK: sk },
+      ConsistentRead: true,
+    }))
+    if (!result.Item) throw new Error('Updated household record could not be read')
+    return toApiRecord(result.Item as DynamoRecord)
+  }
+
   const result = await client.send(new UpdateCommand({
     TableName: TABLE_NAME,
     Key: { PK: household.partitionKey, SK: sk },
@@ -98,7 +139,6 @@ export async function updateRecordForHousehold(
     ...(input.time !== undefined && { ExpressionAttributeNames: { '#t': 'time' } }),
     ReturnValues: 'ALL_NEW',
   }))
-
   return toApiRecord(result.Attributes as DynamoRecord)
 }
 
@@ -108,10 +148,23 @@ export async function deleteRecordForHousehold(
   client: MutationClient = docClient
 ) {
   const sk = decodeSK(encodedId)
-  await client.send(new DeleteCommand({
-    TableName: TABLE_NAME,
-    Key: { PK: household.partitionKey, SK: sk },
-    ConditionExpression: 'attribute_exists(PK) AND attribute_exists(SK)',
-  }))
+  if (household.partitionMode === 'household') {
+    await client.send(new TransactWriteCommand({
+      TransactItems: [
+        { ConditionCheck: activeMembershipCondition(household) },
+        { Delete: {
+          TableName: TABLE_NAME,
+          Key: { PK: household.partitionKey, SK: sk },
+          ConditionExpression: 'attribute_exists(PK) AND attribute_exists(SK)',
+        } },
+      ],
+    }))
+  } else {
+    await client.send(new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: household.partitionKey, SK: sk },
+      ConditionExpression: 'attribute_exists(PK) AND attribute_exists(SK)',
+    }))
+  }
   return { success: true }
 }

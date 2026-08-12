@@ -22,6 +22,10 @@ limits.
 
 1. Change the verified membership state from `active` to `deleting`. Normal Web and
    linked Alexa household resolution then fail closed.
+   Household-mode record and settings mutations also condition-check that same
+   membership as `active` in the DynamoDB transaction that performs the write. A
+   request resolved immediately before the state change therefore cannot write after
+   the deletion lock.
 2. Query only the resolved `HOUSEHOLD#<householdId>` partition with consistent reads.
 3. Delete every item in batches, retry unprocessed writes, and repeat the sweep to
    catch requests that were already in flight.
@@ -74,3 +78,5 @@ record API, and the settings screen reports that bulk deletion is being prepared
 to verify partition isolation, server-derived identity, fail-closed feature and origin
 gates, membership-last deletion, and session clearing. Production records, account
 identifiers, and credentials must never be added to this repository or its issues.
+The household-isolation and Alexa DynamoDB tests also verify that every household-mode
+mutation carries an active-membership condition in the same transaction.
