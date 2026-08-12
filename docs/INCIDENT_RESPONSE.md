@@ -20,7 +20,7 @@
 |-----------|-------|---------------|
 | Web (Next.js 16, OpenNext/SST, CloudFront + Lambda + S3) | **ap-northeast-1** | Deploy is **manual** (`npm run deploy`). No automated rollback → redeploy the last-good commit. |
 | DynamoDB `DrugAndOathRecords` (+ `veai-ben004-metrics`) | **us-east-1** | Cross-region: web in ap-northeast-1 reads/writes this table in us-east-1. |
-| Alexa Skills Kit Lambda | **us-east-1** | Deployed via GitHub Actions `deploy-lambda` job (needs AWS secrets). |
+| Alexa Skills Kit Lambda | **us-east-1** | Deployed only by the manually dispatched `Deploy Alexa Lambda` workflow (needs AWS secrets and the confirmation input). |
 | Auth | Cognito + household membership (PKCE) | Rollback path: `WEB_AUTH_MODE=mvp` — see auth runbook §Rollback. |
 | Weekly report (AI) | Amazon Bedrock | Feature-flagged; failure is degraded, not data loss. |
 
@@ -102,9 +102,9 @@ enabled on `DrugAndOathRecords` and perform a synthetic restore rehearsal.
 > One-command helper: `scripts/redeploy-last-good.sh` finds the most recent main commit with green CI and prints the rollback plan (dry run by default). Add `--deploy` to actually roll production back, or `--sha <commit>` to target a specific known-good commit.
 
 ### 4.5 MP-05 — Alexa Lambda failure (SEV2/SEV3)
-**Detect:** reminders not set / voice records fail; `deploy-lambda` job failing.
+**Detect:** reminders not set / voice records fail; manually dispatched `Deploy Alexa Lambda` workflow failing.
 **Recover:**
-1. If secrets are missing the deploy is skipped by design (see the job's warning) — supply secrets, re-run.
+1. If required secrets are missing, the manual workflow fails before deployment by design — restore the reviewed repository/environment secret configuration, then dispatch it again.
 2. Re-deploy a known-good Lambda artifact. Linked-device rollout can be disabled as a rollback without deleting membership data (see Alexa verification doc).
 
 ### 4.6 MP-06 — Weekly AI report failure (SEV3)

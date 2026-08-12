@@ -20,9 +20,9 @@ jobs:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
@@ -43,9 +43,9 @@ jobs:
       run:
         working-directory: alexa
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
@@ -59,63 +59,14 @@ jobs:
         run: npm run zip
 
       - name: Upload Lambda artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: alexa-skill-zip
           path: alexa/skill.zip
           if-no-files-found: error
 
   # ────────────────────────────────────────────
-  # CD: Deploy Alexa Lambda  (main push only)
-  #
-  # 必要な GitHub Secrets（HUMAN_TASKS.md H-08 を参照）:
-  #   AWS_ACCESS_KEY_ID
-  #   AWS_SECRET_ACCESS_KEY
-  #   AWS_REGION
-  #   LAMBDA_FUNCTION_NAME
-  # ────────────────────────────────────────────
-  deploy-lambda:
-    name: Deploy Alexa Lambda
-    needs: alexa
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check AWS secrets
-        id: check
-        env:
-          AWS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          LAMBDA_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
-        run: |
-          if [ -z "$AWS_KEY" ] || [ -z "$LAMBDA_NAME" ]; then
-            echo "configured=false" >> $GITHUB_OUTPUT
-            echo "::warning::AWS Secrets not set — skipping Lambda deploy. See HUMAN_TASKS.md H-08."
-          else
-            echo "configured=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Download Lambda artifact
-        if: steps.check.outputs.configured == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: alexa-skill-zip
-
-      - name: Configure AWS credentials
-        if: steps.check.outputs.configured == 'true'
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Update Lambda function code
-        if: steps.check.outputs.configured == 'true'
-        run: |
-          aws lambda update-function-code \
-            --function-name "${{ secrets.LAMBDA_FUNCTION_NAME }}" \
-            --zip-file fileb://skill.zip
-
-  # ────────────────────────────────────────────
-  # CD: Web は OpenNext + SST で手動デプロイ
-  #     cd web && npm run deploy
-  #     GitHub Actions からの自動デプロイは未設定
+  # Production deploys are intentionally absent from this push/PR workflow.
+  # Alexa uses deploy-alexa.yml (workflow_dispatch only).
+  # Web uses the separately confirmed local SST deploy procedure.
   # ────────────────────────────────────────────

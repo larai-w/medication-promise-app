@@ -1,0 +1,73 @@
+name: Deploy Alexa Lambda
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type deploy-production to confirm the production update
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-alexa-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy Alexa Lambda
+    if: github.ref == 'refs/heads/main' && inputs.confirmation == 'deploy-production'
+    runs-on: ubuntu-latest
+    environment: production-alexa
+    defaults:
+      run:
+        working-directory: alexa
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: alexa/package-lock.json
+
+      - run: npm ci
+      - run: node --check index.mjs
+      - run: npm test
+      - run: npm run zip
+
+      - name: Require deployment secrets
+        env:
+          AWS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION_VALUE: ${{ secrets.AWS_REGION }}
+          LAMBDA_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+        run: |
+          if [ -z "$AWS_KEY" ] || [ -z "$AWS_SECRET" ] || [ -z "$AWS_REGION_VALUE" ] || [ -z "$LAMBDA_NAME" ]; then
+            echo "::error::Required Alexa production deployment secrets are not configured."
+            exit 1
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Update Lambda function code
+        env:
+          LAMBDA_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+        run: |
+          aws lambda update-function-code \
+            --function-name "$LAMBDA_NAME" \
+            --zip-file fileb://skill.zip \
+            --no-cli-pager
+          aws lambda wait function-updated-v2 --function-name "$LAMBDA_NAME"
+          aws lambda get-function-configuration \
+            --function-name "$LAMBDA_NAME" \
+            --query '{State:State,LastUpdateStatus:LastUpdateStatus}' \
+            --output json \
+            --no-cli-pager
