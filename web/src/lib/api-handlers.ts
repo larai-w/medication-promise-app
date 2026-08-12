@@ -36,6 +36,14 @@ async function resolveForApi(request: Request, resolver: HouseholdResolver) {
   }
 }
 
+function blockedHouseholdMutationResponse(error: unknown) {
+  if (!(error instanceof Error) || error.name !== 'TransactionCanceledException') return null
+  return Response.json(
+    { error: '現在この世帯のデータを変更できません。画面を更新してください。' },
+    { status: 409, headers: { 'Cache-Control': 'no-store' } }
+  )
+}
+
 export function makeRecordsHandlers({
   resolveHousehold = resolveRequestHousehold,
   listRecords = listRecordsForHousehold,
@@ -84,8 +92,14 @@ export function makeRecordsHandlers({
         return Response.json({ error: message }, { status: 400 })
       }
 
-      const record = await createRecord(resolved.household, input)
-      return Response.json(record, { status: 201 })
+      try {
+        const record = await createRecord(resolved.household, input)
+        return Response.json(record, { status: 201 })
+      } catch (error) {
+        const response = blockedHouseholdMutationResponse(error)
+        if (response) return response
+        throw error
+      }
     },
   }
 }
@@ -127,6 +141,8 @@ export function makeRecordItemHandlers({
       try {
         return Response.json(await updateRecord(resolved.household, id, input))
       } catch (error) {
+        const blocked = blockedHouseholdMutationResponse(error)
+        if (blocked) return blocked
         if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
           return Response.json({ error: '記録が見つかりません' }, { status: 404 })
         }
@@ -151,6 +167,8 @@ export function makeRecordItemHandlers({
       try {
         return Response.json(await deleteRecord(resolved.household, id))
       } catch (error) {
+        const blocked = blockedHouseholdMutationResponse(error)
+        if (blocked) return blocked
         if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
           return Response.json({ error: '記録が見つかりません' }, { status: 404 })
         }
@@ -282,7 +300,13 @@ export function makeSettingsHandlers({
           : 'JSONの形式が正しくありません'
         return Response.json({ error: message }, { status: 400 })
       }
-      return Response.json(await putSettings(input, resolved.household))
+      try {
+        return Response.json(await putSettings(input, resolved.household))
+      } catch (error) {
+        const response = blockedHouseholdMutationResponse(error)
+        if (response) return response
+        throw error
+      }
     },
   }
 }

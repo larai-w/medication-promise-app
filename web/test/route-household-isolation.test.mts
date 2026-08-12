@@ -148,3 +148,53 @@ test('API handlers fail before data access when household authentication fails',
   assert.equal(response.status, 401)
   assert.equal(dataAccessed, false)
 })
+
+test('a deletion lock makes every household mutation fail closed', async () => {
+  const transactionCanceled = () => {
+    const error = new Error('synthetic transaction cancellation')
+    error.name = 'TransactionCanceledException'
+    throw error
+  }
+  const records = makeRecordsHandlers({
+    resolveHousehold: async () => householdA,
+    createRecord: async () => transactionCanceled(),
+  })
+  const recordItem = makeRecordItemHandlers({
+    resolveHousehold: async () => householdA,
+    updateRecord: async () => transactionCanceled(),
+    deleteRecord: async () => transactionCanceled(),
+  })
+  const settingsHandlers = makeSettingsHandlers({
+    resolveHousehold: async () => householdA,
+    putSettings: async () => transactionCanceled(),
+  })
+  const id = encodeSK('RECORD#2035-01-15T08:00:00#123e4567-e89b-12d3-a456-426614174000')
+  const params = { params: Promise.resolve({ id }) }
+
+  const responses = await Promise.all([
+    records.POST(new Request('https://example.test/api/records', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: '2035-01-15', time: '08:00', timing: '朝' }),
+    })),
+    recordItem.PUT(new Request('https://example.test/api/records/id', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes: 'SYNTHETIC_NOTE' }),
+    }), params),
+    recordItem.DELETE(new Request('https://example.test/api/records/id', {
+      method: 'DELETE',
+    }), params),
+    settingsHandlers.PUT(new Request('https://example.test/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings),
+    })),
+  ])
+
+  for (const response of responses) {
+    assert.equal(response.status, 409)
+    assert.equal(response.headers.get('cache-control'), 'no-store')
+    assert.match((await response.json()).error, /現在この世帯のデータを変更できません/)
+  }
+})

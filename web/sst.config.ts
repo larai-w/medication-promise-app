@@ -67,6 +67,7 @@ export default $config({
             'dynamodb:UpdateItem',
             'dynamodb:Query',
             'dynamodb:BatchWriteItem',
+            'dynamodb:TransactWriteItems',
           ],
           resources: [tableArn, `${tableArn}/index/*`],
         },

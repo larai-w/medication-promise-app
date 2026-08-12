@@ -6,7 +6,11 @@ import {
 } from '../dynamodb.mjs'
 
 // Synthetic household only — never a real household id or the legacy partition.
-const HOUSEHOLD = { householdId: 'household-a', partitionKey: 'HOUSEHOLD#household-a' }
+const HOUSEHOLD = {
+  householdId: 'household-a',
+  providerSubject: 'provider-user-a',
+  partitionKey: 'HOUSEHOLD#household-a',
+}
 
 // Minimal fake that captures the command input the way the AWS SDK would see it.
 function fakeClient(getItem) {
@@ -26,7 +30,11 @@ test('recordMedicationForHousehold writes into the household partition, not the 
   const result = await recordMedicationForHousehold(HOUSEHOLD, '朝', { client })
 
   assert.equal(client.sent.length, 1)
-  const { Item } = client.sent[0]
+  const [guard, mutation] = client.sent[0].TransactItems
+  const { Item } = mutation.Put
+  assert.equal(guard.ConditionCheck.Key.PK, 'USER#provider-user-a')
+  assert.equal(guard.ConditionCheck.Key.SK, 'MEMBERSHIP#household-a')
+  assert.match(guard.ConditionCheck.ConditionExpression, /#status = :active/)
   assert.equal(Item.PK, 'HOUSEHOLD#household-a')
   assert.equal(Item.userId, 'household-a')
   assert.equal(Item.timing, '朝')

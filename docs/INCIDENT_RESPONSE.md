@@ -85,7 +85,8 @@ enabled on `DrugAndOathRecords` and perform a synthetic restore rehearsal.
 **Detect:** Web API 5xx while the table itself is healthy; errors reference cross-region access.
 **Recover:**
 1. Verify `DYNAMODB_REGION=us-east-1` and `DYNAMODB_TABLE_NAME=DrugAndOathRecords` in the deployed web env (`web/sst.config.ts`).
-2. Check the server Lambda IAM policy still grants the table (GetItem/PutItem/DeleteItem/Query).
+2. Check the server Lambda IAM policy still grants the table
+   (GetItem/PutItem/DeleteItem/UpdateItem/Query/BatchWriteItem/TransactWriteItems).
 3. If a recent deploy changed either → **redeploy last-good** (§4.4).
 
 ### 4.3 MP-03 — Cognito household sign-in lockout (SEV2)
