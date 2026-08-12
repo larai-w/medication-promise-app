@@ -27,9 +27,10 @@ export default async function LoginPage({
         )}
 
         {deleted === '1' && (
-          <p role="status" className="mb-4 text-sm text-green-700">
-            世帯データの削除が完了しました。
-          </p>
+          <div role="status" className="mb-4 space-y-1 text-sm leading-6 text-green-700">
+            <p>アプリ内の世帯データを削除し、ログアウトしました。</p>
+            <p>AlexaのリマインダーはAlexaアプリで削除してください。ログイン用認証アカウントの削除は、<a className="underline" href="mailto:info@veai.jp">info@veai.jp</a>へご連絡ください。</p>
+          </div>
         )}
 
         {mode === 'cognito' ? (
