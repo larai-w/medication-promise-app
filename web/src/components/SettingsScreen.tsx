@@ -202,13 +202,18 @@ export default function SettingsScreen() {
         <section className="rounded-2xl border border-red-200 bg-white p-5 shadow-sm">
           <h2 className="mb-2 text-base font-semibold text-gray-900">データの削除</h2>
           {!deletionInfo?.available ? (
-            <p className="text-sm leading-6 text-gray-600">
-              世帯データの一括削除は現在準備中です。個別の記録は、各記録の詳細から削除できます。
-            </p>
+            <div className="space-y-2 text-sm leading-6 text-gray-600">
+              <p>世帯データの一括削除は現在利用できません。個別の記録は、各記録の詳細から削除できます。</p>
+              <p>
+                すべての記録の削除や限定テストへの参加終了は、
+                <a className="underline" href="mailto:info@veai.jp">info@veai.jp</a>
+                へご連絡ください。
+              </p>
+            </div>
           ) : (
             <div className="space-y-4">
               <p className="text-sm leading-6 text-gray-700">
-                記録、薬名と時刻の設定、アプリ内のアカウント連携情報を削除します。この操作後は元に戻せません。
+                この世帯の記録、薬名とリマインダー時刻の設定、アプリ内の連携情報を削除し、ログアウトします。削除したデータをアプリの画面から元に戻すことはできません。
               </p>
               <label className="flex min-h-11 cursor-pointer items-start gap-3 text-sm leading-6 text-gray-700">
                 <input

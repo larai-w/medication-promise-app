@@ -2,7 +2,7 @@ import LegalDocument from '@/components/LegalDocument'
 
 export default function TermsPage() {
   return (
-    <LegalDocument title="限定テスト利用条件" updated="2026年8月11日">
+    <LegalDocument title="限定テスト利用条件" updated="2026年8月12日">
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">1. 限定テスト</h2>
         <p>おくすりの約束は、招待されたご家族を対象とする開発中の限定テスト版です。機能の変更、停止、記録の不具合が起こる可能性があります。</p>
@@ -24,7 +24,11 @@ export default function TermsPage() {
         <p>重要な判断の前には、表示された記録が実際の服薬状況と合っているか確認してください。PDFや集計結果も、医師・薬剤師へ相談するための補助資料として利用してください。</p>
       </section>
       <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">6. 問い合わせ</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">6. データの削除</h2>
+        <p>世帯データの一括削除を行うと、この世帯の記録、薬名とリマインダー時刻の設定、アプリ内の連携情報が削除され、アプリの画面から元に戻すことはできません。障害復旧用バックアップには最大35日間残る場合がありますが、個別の削除を取り消すためには利用しません。Alexaアプリのリマインダーとログイン用認証アカウントは削除対象外です。</p>
+      </section>
+      <section>
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">7. 問い合わせ</h2>
         <p>不具合、参加終了、データ削除については、<a className="text-indigo-700 underline" href="mailto:info@veai.jp">info@veai.jp</a>へご連絡ください。</p>
       </section>
     </LegalDocument>

@@ -5,11 +5,21 @@ import test from 'node:test'
 const read = (path: string) => readFile(new URL(`../${path}`, import.meta.url), 'utf8')
 
 test('settings keeps account-data deletion available alongside optional metrics', async () => {
-  const settings = await read('src/components/SettingsScreen.tsx')
+  const [settings, deletionHandler, login] = await Promise.all([
+    read('src/components/SettingsScreen.tsx'),
+    read('src/lib/account-deletion-handler.ts'),
+    read('src/app/login/page.tsx'),
+  ])
 
   assert.match(settings, /\/api\/account\/data/)
   assert.match(settings, /世帯データを削除/)
+  assert.match(settings, /アプリの画面から元に戻すことはできません/)
   assert.match(settings, /metricsConsent/)
+  assert.match(deletionHandler, /最大35日間/)
+  assert.match(deletionHandler, /この操作の取り消しには利用できません/)
+  assert.match(deletionHandler, /Alexaアプリのリマインダーとログイン用認証アカウントは削除されません/)
+  assert.match(login, /Alexaアプリで削除してください/)
+  assert.match(login, /ログイン用認証アカウントの削除/)
 })
 
 test('release copy keeps the medical boundary without removing the playful UI', async () => {
@@ -30,9 +40,16 @@ test('release copy keeps the medical boundary without removing the playful UI', 
 })
 
 test('privacy copy states optional metric scope and retention', async () => {
-  const privacy = await read('src/app/privacy/page.tsx')
+  const [privacy, terms] = await Promise.all([
+    read('src/app/privacy/page.tsx'),
+    read('src/app/terms/page.tsx'),
+  ])
 
   assert.match(privacy, /本人が任意で許可/)
   assert.match(privacy, /薬名、記録内容、メモ、端末を追跡するIDを含めません/)
   assert.match(privacy, /35日以内に自動削除/)
+  assert.match(privacy, /最大35日間データが残る場合があります/)
+  assert.match(privacy, /Alexaアプリで削除してください/)
+  assert.match(terms, /アプリの画面から元に戻すことはできません/)
+  assert.match(terms, /ログイン用認証アカウントは削除対象外/)
 })

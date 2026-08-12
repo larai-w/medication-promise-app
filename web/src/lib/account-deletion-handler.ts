@@ -91,8 +91,8 @@ export function makeAccountDeletionHandlers({
         available: isAccountDeletionEnabled(env),
         confirmation: ACCOUNT_DELETION_CONFIRMATION,
         scope: ['records', 'settings', 'household_links'],
-        recovery: 'バックアップには設定済みの復旧期間中データが残る場合があります。通常の画面からは参照できません。',
-        externalData: 'AlexaアプリのリマインダーとCognitoの認証アカウントは別途削除が必要です。',
+        recovery: '削除後も、障害復旧用バックアップには最大35日間データが残る場合があります。通常の画面からは参照できず、この操作の取り消しには利用できません。',
+        externalData: 'この操作では、Alexaアプリのリマインダーとログイン用認証アカウントは削除されません。AlexaのリマインダーはAlexaアプリで削除し、認証アカウントの削除は運営者へご連絡ください。',
       })
     },
 

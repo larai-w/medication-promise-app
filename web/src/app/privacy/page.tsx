@@ -2,7 +2,7 @@ import LegalDocument from '@/components/LegalDocument'
 
 export default function PrivacyPage() {
   return (
-    <LegalDocument title="プライバシーポリシー" updated="2026年8月11日">
+    <LegalDocument title="プライバシーポリシー" updated="2026年8月12日">
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">1. この文書について</h2>
         <p>VEAI LAB.は、服薬記録・生活支援ツール「おくすりの約束」の限定テストを運営します。この文書では、テスト中に扱う情報と、その利用方法を説明します。</p>
@@ -24,11 +24,11 @@ export default function PrivacyPage() {
       </section>
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">4. 保存と外部サービス</h2>
-        <p>記録と設定は限定テストへの参加中、または削除を依頼するまで保存します。本人が任意で許可した保存時間の統計は35日以内に自動削除します。記録の保存とアプリの運用にはAmazon Web Servicesを、音声操作にはAmazon Alexaを利用します。削除後も、障害復旧用バックアップには設定された復旧期間中データが残る場合があります。バックアップは通常の画面から参照できません。法令上必要な場合を除き、目的なく第三者へ情報を提供しません。</p>
+        <p>記録と設定は限定テストへの参加中、または削除を依頼するまで保存します。本人が任意で許可した保存時間の統計は35日以内に自動削除します。記録の保存とアプリの運用にはAmazon Web Servicesを、音声操作にはAmazon Alexaを利用します。削除後も、障害復旧用バックアップには最大35日間データが残る場合があります。バックアップは通常の画面から参照できず、個別の削除を取り消すためには利用しません。法令上必要な場合を除き、目的なく第三者へ情報を提供しません。</p>
       </section>
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">5. 削除と問い合わせ</h2>
-        <p>限定テスト参加者は、画面から個別の記録を削除できます。世帯データの一括削除機能は安全確認が完了するまで無効です。すべての記録の削除やテスト参加の終了は、<a className="text-indigo-700 underline" href="mailto:info@veai.jp">info@veai.jp</a>へご連絡ください。Cognitoの認証アカウントとAlexa側のリマインダーは別管理のため、必要に応じて個別に削除します。</p>
+        <p>限定テスト参加者は、画面から個別の記録を削除できます。世帯データの一括削除が設定画面で利用できる場合は、削除範囲と注意事項を確認してから実行できます。利用できない場合の一括削除や、限定テストへの参加終了、ログイン用認証アカウントの削除は、<a className="text-indigo-700 underline" href="mailto:info@veai.jp">info@veai.jp</a>へご連絡ください。Alexa側のリマインダーはこの操作の対象外のため、Alexaアプリで削除してください。</p>
       </section>
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">6. 変更</h2>
