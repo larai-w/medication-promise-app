@@ -32,8 +32,11 @@ export function buildRecordTimeMetricItem(
 
 const ALLOWED_FIELDS = new Set(['product', 'channel', 'durationMs'])
 
+// 収集はフラグとテーブル名の両方が揃って初めて有効になる。
+// テーブル名に既定値を置かないのは、環境変数が抜けたときに test 環境から
+// 本番テーブルへ書かないため（BEN-004 承認ゲート F-03）。未設定なら fail closed。
 export function isMetricsCollectionEnabled(env: Record<string, string | undefined> = process.env) {
-  return env.METRICS_COLLECTION_ENABLED === 'true'
+  return env.METRICS_COLLECTION_ENABLED === 'true' && Boolean(env.METRICS_TABLE)
 }
 
 export function parseRecordTimeMetric(value: unknown): RecordTimeMetric {

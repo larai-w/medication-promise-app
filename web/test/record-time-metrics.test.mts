@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import {
   buildRecordTimeMetricItem,
@@ -9,9 +10,39 @@ import {
 } from '../src/lib/metrics/record-time.ts'
 
 test('measurement collection is disabled unless explicitly enabled', () => {
+  const table = 'veai-ben004-metrics-test'
   assert.equal(isMetricsCollectionEnabled({}), false)
-  assert.equal(isMetricsCollectionEnabled({ METRICS_COLLECTION_ENABLED: 'false' }), false)
-  assert.equal(isMetricsCollectionEnabled({ METRICS_COLLECTION_ENABLED: 'true' }), true)
+  assert.equal(isMetricsCollectionEnabled({ METRICS_COLLECTION_ENABLED: 'false', METRICS_TABLE: table }), false)
+  assert.equal(isMetricsCollectionEnabled({ METRICS_COLLECTION_ENABLED: 'true', METRICS_TABLE: table }), true)
+})
+
+// F-03: テーブル名が未設定のまま収集が有効になると、本番テーブルへ書きうる。
+// フラグとテーブル名の両方が揃ったときだけ有効にする。
+test('measurement stays disabled when the table name is missing', () => {
+  assert.equal(isMetricsCollectionEnabled({ METRICS_COLLECTION_ENABLED: 'true' }), false)
+  assert.equal(isMetricsCollectionEnabled({ METRICS_COLLECTION_ENABLED: 'true', METRICS_TABLE: '' }), false)
+})
+
+// 計測テーブル名は stage を必ず含める。無印を production 用にすると
+// 条件分岐が要り、stage 未設定時に本番へ倒れる経路が残る。
+test('metrics table name is stage-scoped in the IaC, never a bare production name', async () => {
+  const config = await readFile(new URL('../sst.config.ts', import.meta.url), 'utf8')
+
+  assert.match(
+    config,
+    /const metricsTableName = `veai-ben004-metrics-\$\{\$app\.stage\}`/,
+    '計測テーブル名が stage スコープになっていない'
+  )
+  assert.equal(
+    /['"`]veai-ben004-metrics['"`]/.test(config),
+    false,
+    'stage を含まない裸のテーブル名が残っている'
+  )
+  assert.equal(
+    config.includes('METRICS_TABLE: metricsTableName'),
+    true,
+    'Lambda に渡すテーブル名が stage スコープの値になっていない'
+  )
 })
 
 test('record-time contract accepts only identifier-free values', () => {
