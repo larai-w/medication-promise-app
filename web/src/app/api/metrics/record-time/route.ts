@@ -1,14 +1,12 @@
-import { randomUUID } from 'node:crypto'
 import { PutCommand } from '@aws-sdk/lib-dynamodb'
 import { docClient } from '../../../../lib/dynamodb.ts'
 import { resolveRequestHousehold, unauthorizedHouseholdResponse } from '../../../../lib/household.ts'
 import {
+  buildRecordTimeMetricItem,
   isMetricsCollectionEnabled,
   parseRecordTimeMetric,
   RecordTimeMetricValidationError,
 } from '../../../../lib/metrics/record-time.ts'
-
-const TTL_SECONDS = 35 * 24 * 60 * 60
 
 export async function POST(request: Request) {
   if (!isMetricsCollectionEnabled()) {
@@ -26,19 +24,9 @@ export async function POST(request: Request) {
   try {
     const metric = parseRecordTimeMetric(await request.json())
 
-    const observedAt = new Date()
     await docClient.send(new PutCommand({
       TableName: process.env.METRICS_TABLE,
-      Item: {
-        pk: `medpromise#${randomUUID()}`,
-        sk: observedAt.toISOString(),
-        product: 'medpromise',
-        channel: 'web',
-        eventType: 'record_saved',
-        durationMs: metric.durationMs,
-        date: observedAt.toISOString().slice(0, 10),
-        ttl: Math.floor(observedAt.getTime() / 1000) + TTL_SECONDS,
-      },
+      Item: buildRecordTimeMetricItem(metric),
     }))
 
     return Response.json({ success: true })
