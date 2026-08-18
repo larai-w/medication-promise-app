@@ -1,3 +1,5 @@
+import { resolveSessionSecret, getSessionSecretConfigurationError } from './session-secret.ts'
+
 const ACCESS_MESSAGE = 'drug-and-oath-mvp-access-v1'
 
 export const MVP_ACCESS_COOKIE = 'drug_and_oath_mvp_access'
@@ -7,7 +9,8 @@ type AccessEnvironment = Record<string, string | undefined>
 
 export function isAccessGateEnabled(env: AccessEnvironment = process.env) {
   if (env.MVP_ACCESS_GATE === 'disabled') return false
-  return env.NODE_ENV === 'production' || Boolean(env.MVP_ACCESS_CODE || env.MVP_SESSION_SECRET)
+  return env.NODE_ENV === 'production'
+    || Boolean(env.MVP_ACCESS_CODE || env.MVP_SESSION_SECRET || env.MVP_SESSION_SECRET_ARN)
 }
 
 export function getAccessConfigurationError(env: AccessEnvironment = process.env) {
@@ -15,10 +18,8 @@ export function getAccessConfigurationError(env: AccessEnvironment = process.env
   if (!env.MVP_ACCESS_CODE || env.MVP_ACCESS_CODE.length < 16) {
     return 'MVP_ACCESS_CODE must be at least 16 characters'
   }
-  if (!env.MVP_SESSION_SECRET || env.MVP_SESSION_SECRET.length < 32) {
-    return 'MVP_SESSION_SECRET must be at least 32 characters'
-  }
-  return null
+  // 鍵の実体は Secrets Manager にある場合があるので、ここでは設定の有無だけ見る。
+  return getSessionSecretConfigurationError(env)
 }
 
 async function hmacHex(message: string, secret: string) {
@@ -46,16 +47,17 @@ function constantTimeEqual(left: string, right: string) {
 export async function createAccessToken(env: AccessEnvironment = process.env) {
   const error = getAccessConfigurationError(env)
   if (error) throw new Error(error)
-  return hmacHex(`${ACCESS_MESSAGE}:${env.MVP_ACCESS_CODE}`, env.MVP_SESSION_SECRET!)
+  return hmacHex(`${ACCESS_MESSAGE}:${env.MVP_ACCESS_CODE}`, await resolveSessionSecret(env))
 }
 
 export async function isAccessCodeValid(candidate: unknown, env: AccessEnvironment = process.env) {
   if (getAccessConfigurationError(env) || typeof candidate !== 'string' || candidate.length > 256) {
     return false
   }
+  const secret = await resolveSessionSecret(env)
   const [candidateHash, expectedHash] = await Promise.all([
-    hmacHex(candidate, env.MVP_SESSION_SECRET!),
-    hmacHex(env.MVP_ACCESS_CODE!, env.MVP_SESSION_SECRET!),
+    hmacHex(candidate, secret),
+    hmacHex(env.MVP_ACCESS_CODE!, secret),
   ])
   return constantTimeEqual(candidateHash, expectedHash)
 }

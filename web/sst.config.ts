@@ -31,6 +31,26 @@ export default $config({
     // 状態だった。健康データが混ざるのは取り返しがつかないので、production 以外は
     // 別テーブル・別世帯を指す。
     const isProduction = $app.stage === 'production'
+
+    // セッション署名鍵の実体は Secrets Manager に置く。Lambda 環境変数には
+    // ARN だけを渡し、値は実行時に取得する（src/lib/session-secret.ts）。
+    // 環境変数は lambda:GetFunctionConfiguration だけで読めてしまうため。
+    //
+    // 値の出どころは従来どおり sst.Secret（MvpSessionSecret）。単一の出どころを
+    // 保ったまま、Lambda から見える形だけを変えている。
+    const sessionSecretStore = new aws.secretsmanager.Secret('WebSessionSecret', {
+      name: isProduction
+        ? 'drug-and-oath/web-session-secret'
+        : `drug-and-oath/web-session-secret-${$app.stage}`,
+      description: 'Web セッション Cookie の署名・暗号に使う鍵',
+      // 本番は誤削除に備えて復旧期間を残す。検証用は即削除して作り直せるように。
+      recoveryWindowInDays: isProduction ? 30 : 0,
+    })
+
+    new aws.secretsmanager.SecretVersion('WebSessionSecretValue', {
+      secretId: sessionSecretStore.id,
+      secretString: mvpSessionSecret.value,
+    })
     const recordsTableName = isProduction
       ? 'DrugAndOathRecords'
       : `DrugAndOathRecords-${$app.stage}`
@@ -76,7 +96,7 @@ export default $config({
         COGNITO_HOSTED_UI_HOST: cognitoHostedUiHost.value,
         MVP_ACCESS_GATE: 'enabled',
         MVP_ACCESS_CODE: mvpAccessCode.value,
-        MVP_SESSION_SECRET: mvpSessionSecret.value,
+        MVP_SESSION_SECRET_ARN: sessionSecretStore.arn,
         METRICS_TABLE: metricsTableName,
         METRICS_COLLECTION_ENABLED: 'false',
       },
@@ -94,6 +114,11 @@ export default $config({
             'dynamodb:TransactWriteItems',
           ],
           resources: [tableArn, `${tableArn}/index/*`],
+        },
+        {
+          // セッション署名鍵の取得のみ。この1つのシークレットに限定する。
+          actions: ['secretsmanager:GetSecretValue'],
+          resources: [sessionSecretStore.arn],
         },
         {
           // BEN-004 メトリクス書き込み（PutItemのみ・最小権限）
