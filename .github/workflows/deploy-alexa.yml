@@ -65,7 +65,39 @@ jobs:
             --function-name "$LAMBDA_NAME" \
             --zip-file fileb://skill.zip \
             --no-cli-pager
-          aws lambda wait function-updated-v2 --function-name "$LAMBDA_NAME"
+
+          # The generic Lambda waiter calls GetFunction, which is not part of
+          # the deploy user policy. Poll the narrower configuration API instead.
+          update_status="InProgress"
+          for attempt in $(seq 1 15); do
+            update_status="$(aws lambda get-function-configuration \
+              --function-name "$LAMBDA_NAME" \
+              --query 'LastUpdateStatus' \
+              --output text \
+              --no-cli-pager)"
+            case "$update_status" in
+              Successful)
+                break
+                ;;
+              Failed)
+                echo "::error::Lambda code update failed."
+                exit 1
+                ;;
+              InProgress)
+                sleep 2
+                ;;
+              *)
+                echo "::error::Unexpected Lambda update status: $update_status"
+                exit 1
+                ;;
+            esac
+          done
+
+          if [ "$update_status" != "Successful" ]; then
+            echo "::error::Lambda code update did not complete within the polling window."
+            exit 1
+          fi
+
           aws lambda get-function-configuration \
             --function-name "$LAMBDA_NAME" \
             --query '{State:State,LastUpdateStatus:LastUpdateStatus}' \
