@@ -25,8 +25,16 @@ export default $config({
     // DynamoDB テーブル・Alexa Lambda・API Gateway は us-east-1（veai エコシステムの本拠）。
     // Web インフラ（CloudFront/Lambda）は日本利用者に近い ap-northeast-1 に置き、
     // DynamoDB だけクロスリージョンで us-east-1 を参照する。
-    const tableArn =
-      'arn:aws:dynamodb:us-east-1:339712703146:table/DrugAndOathRecords'
+    //
+    // stage 分離（2026-08-18・F-07）。従来は記録テーブル名・ドメイン・世帯IDが
+    // すべて本番直書きで、`--stage test` すると本番の服薬記録テーブルに書き込む
+    // 状態だった。健康データが混ざるのは取り返しがつかないので、production 以外は
+    // 別テーブル・別世帯を指す。
+    const isProduction = $app.stage === 'production'
+    const recordsTableName = isProduction
+      ? 'DrugAndOathRecords'
+      : `DrugAndOathRecords-${$app.stage}`
+    const tableArn = `arn:aws:dynamodb:us-east-1:339712703146:table/${recordsTableName}`
     // ADR-0007はProposed。権限候補はあるが収集は明示的に無効化する。
     //
     // 計測テーブルは必ず stage を名前に含める(BEN-004 承認ゲート F-03)。
@@ -44,17 +52,25 @@ export default $config({
 
     const web = new sst.aws.Nextjs('Web', {
       path: '.',
-      domain: 'kusuri.veai.jp',
+      // production 以外はドメインを付けない。CloudFront の既定URLで足りるうえ、
+      // ACM 証明書と DNS 検証を待たずに test 環境を立てられる。
+      // 付けてしまうと本番ドメインを奪い合う（F-07）。
+      ...(isProduction ? { domain: 'kusuri.veai.jp' } : {}),
       environment: {
         DYNAMODB_REGION: 'us-east-1',
-        DYNAMODB_TABLE_NAME: 'DrugAndOathRecords',
-        USER_ID: 'default-user',
-        HOUSEHOLD_ID: 'owner-household',
+        DYNAMODB_TABLE_NAME: recordsTableName,
+        // 世帯IDも分ける。テーブルを分けても同じ世帯IDだと、取り違えたときに
+        // 本番と同じキー空間を触ることになる。
+        USER_ID: isProduction ? 'default-user' : `test-user-${$app.stage}`,
+        HOUSEHOLD_ID: isProduction ? 'owner-household' : `test-household-${$app.stage}`,
         HOUSEHOLD_PARTITION_MODE: 'household',
         WEB_AUTH_MODE: 'cognito',
         // Alexa household cutover and legacy-partition disposition are release gates.
         ACCOUNT_DELETION_ENABLED: 'false',
-        APP_ORIGIN: 'https://kusuri.veai.jp',
+        // production 以外は CloudFront の既定URLになるが、環境変数を組み立てる
+        // 時点では web.url を参照できない（自己参照になる）。test では Cognito の
+        // リダイレクト先が要らない前提で空にし、必要なら sst.Secret で渡す。
+        APP_ORIGIN: isProduction ? 'https://kusuri.veai.jp' : '',
         COGNITO_USER_POOL_ID: cognitoUserPoolId.value,
         COGNITO_WEB_CLIENT_ID: cognitoWebClientId.value,
         COGNITO_HOSTED_UI_HOST: cognitoHostedUiHost.value,
@@ -155,7 +171,7 @@ export default $config({
       alarmDescription: 'DynamoDB reported a server-side error for the records table.',
       namespace: 'AWS/DynamoDB',
       metricName: 'SystemErrors',
-      dimensions: { TableName: 'DrugAndOathRecords' },
+      dimensions: { TableName: recordsTableName },
       region: 'us-east-1',
       alarmActions: [virginiaAlertTopicArn],
     })
@@ -166,7 +182,7 @@ export default $config({
       alarmDescription: 'A request to the records table was throttled.',
       namespace: 'AWS/DynamoDB',
       metricName: 'ThrottledRequests',
-      dimensions: { TableName: 'DrugAndOathRecords' },
+      dimensions: { TableName: recordsTableName },
       region: 'us-east-1',
       alarmActions: [virginiaAlertTopicArn],
     })
