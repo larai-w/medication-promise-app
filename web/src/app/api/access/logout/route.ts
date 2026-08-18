@@ -26,13 +26,21 @@ export async function POST(request: Request) {
   }
 
   const response = NextResponse.redirect(destination, 303)
-  response.cookies.set(MVP_ACCESS_COOKIE, '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 0,
-    path: '/',
-  })
+  // ログアウトで消すのは Cognito のセッションだけにする。
+  // 従来は招待コードの印(MVP_ACCESS_COOKIE)も一緒に消しており、アカウントを
+  // 切り替えたいだけでも招待コードから入り直しになっていた。招待コードは
+  // 「このサイトに入ってよい人か」を示すもので、「今誰がログインしているか」
+  // とは別の層。完全に離脱したい場合は ?full=1 を付ける。
+  const clearAccessGate = new URL(request.url).searchParams.get('full') === '1'
+  if (clearAccessGate) {
+    response.cookies.set(MVP_ACCESS_COOKIE, '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 0,
+      path: '/',
+    })
+  }
   response.cookies.set(WEB_SESSION_COOKIE, '', { httpOnly: true, maxAge: 0, path: '/' })
   response.cookies.set(OAUTH_STATE_COOKIE, '', { httpOnly: true, maxAge: 0, path: '/' })
   response.cookies.set(OAUTH_VERIFIER_COOKIE, '', { httpOnly: true, maxAge: 0, path: '/' })
