@@ -1,4 +1,5 @@
 import { CognitoJwtVerifier } from 'aws-jwt-verify'
+import { resolveSessionSecret } from './session-secret.ts'
 
 type AuthEnvironment = Record<string, string | undefined>
 
@@ -36,16 +37,8 @@ function decodeBase64Url(value: string) {
   return Uint8Array.from(binary, (character) => character.charCodeAt(0))
 }
 
-function requireSessionSecret(env: AuthEnvironment) {
-  const secret = env.MVP_SESSION_SECRET
-  if (!secret || secret.length < 32) {
-    throw new Error('MVP_SESSION_SECRET must be at least 32 characters')
-  }
-  return secret
-}
-
 async function sessionKey(env: AuthEnvironment) {
-  const encoded = new TextEncoder().encode(requireSessionSecret(env))
+  const encoded = new TextEncoder().encode(await resolveSessionSecret(env))
   const digest = await crypto.subtle.digest('SHA-256', encoded)
   return crypto.subtle.importKey('raw', digest, 'AES-GCM', false, ['encrypt', 'decrypt'])
 }
