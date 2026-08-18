@@ -47,46 +47,50 @@ export async function setAllReminders(apiEndpoint, apiAccessToken, schedule, med
   }
 
   const { alerts = [] } = await listRes.json()
-  for (const alert of alerts) {
-    const deleteRes = await fetchFn(`${apiEndpoint}/v1/alerts/reminders/${alert.alertToken}`, {
-      method: 'DELETE',
-      headers,
+  await Promise.all(
+    alerts.map(async (alert) => {
+      const deleteRes = await fetchFn(`${apiEndpoint}/v1/alerts/reminders/${alert.alertToken}`, {
+        method: 'DELETE',
+        headers,
+      })
+      if (!deleteRes.ok) {
+        throw new Error(`Reminder delete API ${deleteRes.status}`)
+      }
     })
-    if (!deleteRes.ok) {
-      throw new Error(`Reminder delete API ${deleteRes.status}`)
-    }
-  }
+  )
 
   // 設定されたリマインダーを作成
   const todayJST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)
-  for (const { timing, hour, min } of schedule) {
-    const hh = String(hour).padStart(2, '0')
-    const mm = String(min).padStart(2, '0')
-    const body = {
-      requestTime: new Date().toISOString(),
-      trigger: {
-        type: 'SCHEDULED_ABSOLUTE',
-        scheduledTime: `${todayJST}T${hh}:${mm}:00.000`,
-        timeZoneId: 'Asia/Tokyo',
-        recurrence: { freq: 'DAILY' },
-      },
-      alertInfo: {
-        spokenInfo: {
-          content: [{ locale: 'ja-JP', text: buildReminderText(timing, medicationName) }],
+  await Promise.all(
+    schedule.map(async ({ timing, hour, min }) => {
+      const hh = String(hour).padStart(2, '0')
+      const mm = String(min).padStart(2, '0')
+      const body = {
+        requestTime: new Date().toISOString(),
+        trigger: {
+          type: 'SCHEDULED_ABSOLUTE',
+          scheduledTime: `${todayJST}T${hh}:${mm}:00.000`,
+          timeZoneId: 'Asia/Tokyo',
+          recurrence: { freq: 'DAILY' },
         },
-      },
-      pushNotification: { status: 'ENABLED' },
-    }
-    const res = await fetchFn(`${apiEndpoint}/v1/alerts/reminders`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
+        alertInfo: {
+          spokenInfo: {
+            content: [{ locale: 'ja-JP', text: buildReminderText(timing, medicationName) }],
+          },
+        },
+        pushNotification: { status: 'ENABLED' },
+      }
+      const res = await fetchFn(`${apiEndpoint}/v1/alerts/reminders`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) {
+        const errBody = await res.text()
+        throw new Error(`Reminder API ${res.status}: ${errBody}`)
+      }
     })
-    if (!res.ok) {
-      const errBody = await res.text()
-      throw new Error(`Reminder API ${res.status}: ${errBody}`)
-    }
-  }
+  )
 
   return { success: true }
 }

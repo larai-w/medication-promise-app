@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createHandler } from '../index.mjs'
+import { createHandler, setAllReminders } from '../index.mjs'
 
 function intentEvent(name) {
   return {
@@ -103,4 +103,39 @@ test('reminders use stored settings from DynamoDB when present', async () => {
   assert.equal(createCalls.length, 2)
   assert.match(response.response.outputSpeech.text, /朝8時15分、夜9時22時/)
   assert.match(JSON.parse(createCalls[0].init.body).alertInfo.spokenInfo.content[0].text, /お薬A/)
+})
+
+test('creates all scheduled reminders concurrently after deleting old reminders', async () => {
+  let postCount = 0
+  let releasePosts
+  const postsReleased = new Promise((resolve) => {
+    releasePosts = resolve
+  })
+  const fetchFn = async (url, init = {}) => {
+    if (!init.method) return Response.json({ alerts: [] })
+    if (init.method === 'POST') {
+      postCount += 1
+      await postsReleased
+    }
+    return new Response('', { status: 200 })
+  }
+  const schedule = [
+    { timing: '朝', hour: 8, min: 0 },
+    { timing: '昼', hour: 12, min: 0 },
+    { timing: '晩', hour: 18, min: 0 },
+    { timing: '夜8時', hour: 20, min: 0 },
+    { timing: '夜9時', hour: 21, min: 0 },
+  ]
+
+  const operation = setAllReminders(
+    'https://api.amazonalexa.test',
+    'test-token',
+    schedule,
+    '',
+    fetchFn
+  )
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(postCount, schedule.length)
+  releasePosts()
+  await operation
 })
