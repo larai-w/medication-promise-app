@@ -43,7 +43,10 @@ export async function POST(request: Request) {
   response.cookies.set(MVP_ACCESS_COOKIE, await createAccessToken(), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    // strict だと外部リンクやメールから開いた初回リクエストで Cookie が送られず、
+    // 招待コードを何度も聞かれる。この Cookie は「入口を通った」印にすぎず、
+    // これ単体では何も操作できない(操作には Cognito セッションが別途必要)ため lax で足りる。
+    sameSite: 'lax',
     maxAge: MVP_ACCESS_MAX_AGE,
     path: '/',
     priority: 'high',
