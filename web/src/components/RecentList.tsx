@@ -9,7 +9,7 @@ interface Props {
 export default function RecentList({ records }: Props) {
   if (records.length === 0) {
     return (
-      <div className="flex flex-col items-center py-8 text-gray-400 dark:text-gray-500" role="status">
+      <div className="flex flex-col items-center py-8 text-gray-600 dark:text-gray-500" role="status">
         <span className="text-3xl mb-2" aria-hidden="true">📋</span>
         <p className="text-sm">過去6日間の記録はありません</p>
         <p className="text-xs mt-1">今日からお薬を記録してみましょう</p>
@@ -40,7 +40,7 @@ export default function RecentList({ records }: Props) {
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{record.timing}</span>
                 <div className="flex items-center gap-3">
                   {record.notes && (
-                    <span className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-24">{record.notes}</span>
+                    <span className="text-xs text-gray-600 dark:text-gray-500 truncate max-w-24">{record.notes}</span>
                   )}
                   <span className="text-sm text-gray-500 dark:text-gray-400">{record.time}</span>
                 </div>

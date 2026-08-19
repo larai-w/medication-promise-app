@@ -73,7 +73,7 @@ export default function MedicationButton({ timing, record, onQuickRecord, onEdit
       aria-label={`${timing} ${TIMING_DEFAULTS[timing]} 服薬予定、タップで記録`}
     >
       <span className="font-semibold text-gray-700 dark:text-gray-200 text-lg">{timing}</span>
-      <span className="text-gray-400 dark:text-gray-500 text-sm">{TIMING_DEFAULTS[timing]} 💊</span>
+      <span className="text-gray-600 dark:text-gray-500 text-sm">{TIMING_DEFAULTS[timing]} 💊</span>
     </button>
   )
 }

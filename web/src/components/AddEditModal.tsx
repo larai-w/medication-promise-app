@@ -78,7 +78,7 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
             onChange={e => setTime(e.target.value)}
             className="min-h-11 w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">区分を選ぶと自動でセットされます</p>
+          <p className="text-xs text-gray-600 dark:text-gray-500 mt-1">区分を選ぶと自動でセットされます</p>
         </div>
 
         <div>
@@ -91,7 +91,7 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
             maxLength={200}
             className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 text-right">{notes.length}/200</p>
+          <p className="text-xs text-gray-600 dark:text-gray-500 mt-1 text-right">{notes.length}/200</p>
         </div>
 
         <div className="flex gap-3 pt-1">
