@@ -42,6 +42,13 @@ not converted to `medication_missed`, `confirmed_none`, or any adherence conclus
 The export is marked `personal_review`; it does not grant research use or establish
 consent for another purpose.
 
+Daily condition scores are exported separately in `dailyConditions`. Each score has
+`observedAt` (when the person describes the condition) and `recordedAt` (when the
+score was saved). These timestamps are intentionally distinct so a downstream
+normalizer does not substitute the export time for the original record time. Older
+stored condition items without `recordedAt` are returned with the legacy
+`observedAt` value as a compatibility fallback.
+
 ## Corrections and deletion
 
 Records with `updatedAt` are marked `correction.status: "corrected"`. The current

@@ -43,5 +43,6 @@ export interface DailyCondition {
   date: string
   score: 1 | 2 | 3 | 4 | 5
   observedAt: string
+  recordedAt: string
   note?: string
 }

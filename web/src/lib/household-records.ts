@@ -21,6 +21,7 @@ type ConditionItem = {
   date: string
   score: DailyCondition['score']
   observedAt: string
+  recordedAt?: string
   note?: string
 }
 
@@ -39,7 +40,14 @@ function toApiRecord(item: DynamoRecord): MedicationRecord {
 }
 
 function toApiCondition(item: ConditionItem): DailyCondition {
-  return { date: item.date, score: item.score, observedAt: item.observedAt, note: item.note }
+  // Legacy wellness items predate recordedAt; observedAt is the only available timestamp.
+  return {
+    date: item.date,
+    score: item.score,
+    observedAt: item.observedAt,
+    recordedAt: item.recordedAt ?? item.observedAt,
+    note: item.note,
+  }
 }
 
 export async function getDailyConditionForHousehold(
@@ -79,12 +87,14 @@ export async function putDailyConditionForHousehold(
   input: { date: string; score: DailyCondition['score']; note?: string },
   client: MutationClient = docClient
 ) {
+  const timestamp = new Date().toISOString()
   const item: ConditionItem = {
     PK: household.partitionKey,
     SK: `WELLNESS#${input.date}`,
     date: input.date,
     score: input.score,
-    observedAt: new Date().toISOString(),
+    observedAt: timestamp,
+    recordedAt: timestamp,
     note: input.note,
   }
   if (household.partitionMode === 'household') {
