@@ -1,3 +1,5 @@
+import type { DailyCondition } from '../types/index.ts'
+
 const VALID_TIMINGS = new Set(['朝', '昼', '晩', '夜8時', '夜9時'])
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
 const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/
@@ -28,6 +30,30 @@ export function isValidMonth(value: unknown): value is string {
   if (!match) return false
   const month = Number(match[2])
   return month >= 1 && month <= 12
+}
+
+function parseConditionScore(value: unknown): DailyCondition['score'] {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 5) {
+    throw new InputValidationError('体調は1〜5で入力してください')
+  }
+  return value as DailyCondition['score']
+}
+
+function parseConditionNote(value: unknown) {
+  if (value === undefined || value === null || value === '') return undefined
+  if (typeof value !== 'string') throw new InputValidationError('体調メモは文字列で入力してください')
+  const note = value.trim()
+  if (note.length > 200) throw new InputValidationError('体調メモは200文字以内で入力してください')
+  return note || undefined
+}
+
+export function parseDailyConditionInput(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new InputValidationError('入力内容が正しくありません')
+  }
+  const body = value as Record<string, unknown>
+  if (!isValidDate(body.date)) throw new InputValidationError('日付が正しくありません')
+  return { date: body.date, score: parseConditionScore(body.score), note: parseConditionNote(body.note) }
 }
 
 function parseNotes(value: unknown) {

@@ -10,10 +10,19 @@ import { randomUUID } from 'crypto'
 import { docClient, TABLE_NAME, decodeSK, encodeSK, makeSK } from './dynamodb.ts'
 import type { AuthenticatedHousehold } from './household.ts'
 import { activeMembershipCondition } from './membership-write-guard.ts'
-import type { DynamoRecord, MedicationRecord } from '../types'
+import type { DailyCondition, DynamoRecord, MedicationRecord } from '../types'
 
 type QueryClient = { send(command: unknown): Promise<{ Items?: unknown[] }> }
 type MutationClient = { send(command: unknown): Promise<{ Attributes?: unknown; Item?: unknown }> }
+
+type ConditionItem = {
+  PK: string
+  SK: string
+  date: string
+  score: DailyCondition['score']
+  observedAt: string
+  note?: string
+}
 
 function toApiRecord(item: DynamoRecord): MedicationRecord {
   return {
@@ -27,6 +36,50 @@ function toApiRecord(item: DynamoRecord): MedicationRecord {
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   }
+}
+
+function toApiCondition(item: ConditionItem): DailyCondition {
+  return { date: item.date, score: item.score, observedAt: item.observedAt, note: item.note }
+}
+
+export async function getDailyConditionForHousehold(
+  household: AuthenticatedHousehold,
+  date: string,
+  client: QueryClient = docClient
+) {
+  const result = await client.send(new GetCommand({
+    TableName: TABLE_NAME,
+    Key: { PK: household.partitionKey, SK: `WELLNESS#${date}` },
+    ConsistentRead: true,
+  }))
+  const item = (result as { Item?: unknown }).Item
+  return item ? toApiCondition(item as ConditionItem) : null
+}
+
+export async function putDailyConditionForHousehold(
+  household: AuthenticatedHousehold,
+  input: { date: string; score: DailyCondition['score']; note?: string },
+  client: MutationClient = docClient
+) {
+  const item: ConditionItem = {
+    PK: household.partitionKey,
+    SK: `WELLNESS#${input.date}`,
+    date: input.date,
+    score: input.score,
+    observedAt: new Date().toISOString(),
+    note: input.note,
+  }
+  if (household.partitionMode === 'household') {
+    await client.send(new TransactWriteCommand({
+      TransactItems: [
+        { ConditionCheck: activeMembershipCondition(household) },
+        { Put: { TableName: TABLE_NAME, Item: item } },
+      ],
+    }))
+  } else {
+    await client.send(new PutCommand({ TableName: TABLE_NAME, Item: item }))
+  }
+  return toApiCondition(item)
 }
 
 export async function listRecordsForHousehold(
