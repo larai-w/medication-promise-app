@@ -11,6 +11,7 @@ import {
 import { makeCareEventExportHandler } from '../src/lib/api-handlers.ts'
 import { HouseholdAuthError, makeAuthenticatedHousehold } from '../src/lib/household.ts'
 import type { MedicationRecord } from '../src/types/index.ts'
+import type { DailyCondition } from '../src/types/index.ts'
 
 const fixtureUrl = new URL('./fixtures/care-event-export-records.synthetic.json', import.meta.url)
 const fixture = JSON.parse(await readFile(fixtureUrl, 'utf8')) as MedicationRecord[]
@@ -47,6 +48,16 @@ test('generated export validates against the published Draft 2020-12 schema', ()
 
   assert.equal(validate(exported), true, JSON.stringify(validate.errors))
   assert.equal(exported.recordCount, exported.records.length)
+  assert.deepEqual(exported.dailyConditions, [])
+})
+
+test('export includes daily condition scores without household identifiers', () => {
+  const condition: DailyCondition = {
+    date: '2035-01-15', score: 4, observedAt: '2035-01-15T13:00:00.000Z', note: '合成メモ',
+  }
+  const exported = buildMedicationPromiseExport(fixture, [condition], new Date('2035-01-16T00:00:00.000Z'))
+  assert.deepEqual(exported.dailyConditions, [condition])
+  assert.equal(JSON.stringify(exported).includes('HOUSEHOLD#'), false)
 })
 
 test('does not export household identifiers, user IDs, credentials, or presentation state', () => {
@@ -110,6 +121,7 @@ test('export handler derives scope only from the authenticated household', async
       seen.push(`${household.partitionKey}:${query.from}:${query.to}`)
       return fixture
     },
+    listConditions: async () => [],
     buildExport: (records) => buildMedicationPromiseExport(
       records,
       new Date('2035-01-16T00:00:00.000Z')
