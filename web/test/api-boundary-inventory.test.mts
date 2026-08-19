@@ -29,6 +29,7 @@ const publicOrSessionOnlyRoutes = new Set([
 
 const protectedRouteMarkers: Record<string, RegExp> = {
   'account/data/route.ts': /makeAccountDeletionHandlers/,
+  'condition/route.ts': /resolveRequestHousehold/,
   'insights/route.ts': /resolveRequestHousehold/,
   'insights/weekly/route.ts': /resolveRequestHousehold/,
   'metrics/record-time/route.ts': /resolveRequestHousehold/,

@@ -5,6 +5,7 @@ import {
   isValidDate,
   isValidMonth,
   parseCreateRecordInput,
+  parseDailyConditionInput,
   parseUpdateRecordInput,
   validateRecordSortKey,
 } from '../src/lib/record-validation.ts'
@@ -46,6 +47,14 @@ test('create input accepts only known timings, valid time, and short notes', () 
 test('update input requires at least one valid field', () => {
   assert.deepEqual(parseUpdateRecordInput({ notes: '' }), { notes: '' })
   assert.throws(() => parseUpdateRecordInput({}), /更新内容がありません/)
+})
+
+test('daily condition accepts only an integer score from 1 to 5', () => {
+  assert.deepEqual(parseDailyConditionInput({ date: '2026-08-19', score: 4 }), {
+    date: '2026-08-19', score: 4, note: undefined,
+  })
+  assert.throws(() => parseDailyConditionInput({ date: '2026-08-19', score: 0 }), /1〜5/)
+  assert.throws(() => parseDailyConditionInput({ date: '2026-08-19', score: 3.5 }), /1〜5/)
 })
 
 test('record sort keys cannot escape the medication-record namespace', () => {

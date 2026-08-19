@@ -2,7 +2,7 @@ import LegalDocument from '@/components/LegalDocument'
 
 export default function PrivacyPage() {
   return (
-    <LegalDocument title="プライバシーポリシー" updated="2026年8月12日">
+    <LegalDocument title="プライバシーポリシー" updated="2026年8月19日">
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">1. この文書について</h2>
         <p>VEAI LAB.は、服薬記録・生活支援ツール「おくすりの約束」の限定テストを運営します。この文書では、テスト中に扱う情報と、その利用方法を説明します。</p>
@@ -11,6 +11,7 @@ export default function PrivacyPage() {
         <h2 className="text-lg font-semibold text-gray-900 mb-2">2. 扱う情報</h2>
         <ul className="list-disc pl-5 space-y-1">
           <li>服薬を記録した日付、時刻、区分、入力元</li>
+          <li>利用者が任意で入力した日ごとの体調スコア（1〜5）と体調メモ</li>
           <li>利用者が任意で入力したメモ</li>
           <li>Alexaリマインダーの設定に必要な権限情報</li>
           <li>障害調査に必要なアクセス時刻やエラー情報</li>

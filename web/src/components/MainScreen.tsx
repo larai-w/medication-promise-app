@@ -10,7 +10,7 @@ import {
   settingsToTimingDefaults,
   type MedicationSettings,
 } from '@/lib/settings'
-import type { MedicationRecord } from '@/types'
+import type { DailyCondition, MedicationRecord } from '@/types'
 import MedicationButton from './MedicationButton'
 import AddEditModal from './AddEditModal'
 import RecentList from './RecentList'
@@ -64,6 +64,8 @@ export default function MainScreen() {
     return (localStorage.getItem('theme') as 'light' | 'dark' | 'system' | null) ?? 'system'
   })
   const [insights, setInsights] = useState<InsightsData | null>(null)
+  const [condition, setCondition] = useState<DailyCondition | null>(null)
+  const [conditionSaving, setConditionSaving] = useState(false)
 
   const toggleTheme = () => {
     const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
@@ -129,17 +131,24 @@ export default function MainScreen() {
     setSettings(await res.json() as MedicationSettings)
   }, [])
 
+  const fetchCondition = useCallback(async () => {
+    const res = await fetch(`/api/condition?date=${today}`)
+    if (res.status === 401) { window.location.assign('/login'); throw new Error('ログインの有効期限が切れました') }
+    if (!res.ok) throw new Error('今日の体調を読み込めませんでした')
+    setCondition(await res.json() as DailyCondition | null)
+  }, [today])
+
   const fetchAll = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      await Promise.all([fetchToday(), fetchRecent(), fetchInsights(), fetchSettings()])
+      await Promise.all([fetchToday(), fetchRecent(), fetchInsights(), fetchSettings(), fetchCondition()])
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '記録を読み込めませんでした')
     } finally {
       setLoading(false)
     }
-  }, [fetchToday, fetchRecent, fetchInsights, fetchSettings])
+  }, [fetchToday, fetchRecent, fetchInsights, fetchSettings, fetchCondition])
 
   useEffect(() => {
     void Promise.resolve().then(fetchAll)
@@ -182,6 +191,17 @@ export default function MainScreen() {
       medpromiseTracker.cancel()
       setError('記録の保存に失敗しました。もう一度お試しください。')
     }
+  }
+
+  const saveCondition = async (score: DailyCondition['score']) => {
+    setConditionSaving(true)
+    try {
+      const res = await fetch('/api/condition', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: today, score }) })
+      if (res.status === 401) window.location.assign('/login')
+      if (!res.ok) throw new Error()
+      setCondition(await res.json() as DailyCondition)
+    } catch { setError('体調の保存に失敗しました。もう一度お試しください。') }
+    finally { setConditionSaving(false) }
   }
 
   const handleDelete = (id: string) => {
@@ -252,6 +272,19 @@ export default function MainScreen() {
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 space-y-6 pb-16">
+        <section className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm" aria-labelledby="condition-heading">
+          <div className="flex items-center justify-between mb-2">
+            <div><h2 id="condition-heading" className="font-semibold text-gray-800 dark:text-gray-100">今日の体調</h2><p className="text-xs text-gray-500 dark:text-gray-400">夜に一度、1〜5で振り返ります</p></div>
+            {condition && <span className="text-sm text-gray-500 dark:text-gray-400">記録済み: {condition.score}</span>}
+          </div>
+          <div className="grid grid-cols-5 gap-2" role="group" aria-label="今日の体調を1から5で選択">
+            {([1, 2, 3, 4, 5] as const).map(score => {
+              const selected = condition?.score === score
+              return <button key={score} type="button" disabled={conditionSaving} onClick={() => void saveCondition(score)} aria-pressed={selected} aria-label={`体調 ${score}: ${['とてもつらい', 'つらい', 'ふつう', '良い', 'とても良い'][score - 1]}`} className={`min-h-11 rounded-xl border-2 text-lg font-semibold transition-colors ${selected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-indigo-300'}`}>{score}</button>
+            })}
+          </div>
+          <div className="flex justify-between text-[11px] text-gray-400 dark:text-gray-500 mt-1"><span>つらい</span><span>良い</span></div>
+        </section>
         {/* 記録を支えるメッセージ */}
         {insights?.message && (
           <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${messageBg(insights.message.type)}`} role="status">
