@@ -133,7 +133,7 @@ export default function SettingsScreen() {
           </p>
 
           {loading ? (
-            <p className="text-gray-400 text-sm">読み込み中...</p>
+            <p className="text-gray-600 text-sm">読み込み中...</p>
           ) : (
             <div className="space-y-5">
               <div>

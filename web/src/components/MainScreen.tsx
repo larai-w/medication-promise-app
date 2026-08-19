@@ -283,7 +283,7 @@ export default function MainScreen() {
               return <button key={score} type="button" disabled={conditionSaving} onClick={() => void saveCondition(score)} aria-pressed={selected} aria-label={`体調 ${score}: ${['とてもつらい', 'つらい', 'ふつう', '良い', 'とても良い'][score - 1]}`} className={`min-h-11 rounded-xl border-2 text-lg font-semibold transition-colors ${selected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-indigo-300'}`}>{score}</button>
             })}
           </div>
-          <div className="flex justify-between text-[11px] text-gray-400 dark:text-gray-500 mt-1"><span>つらい</span><span>良い</span></div>
+          <div className="flex justify-between text-[11px] text-gray-600 dark:text-gray-500 mt-1"><span>つらい</span><span>良い</span></div>
         </section>
         {/* 記録を支えるメッセージ */}
         {insights?.message && (
@@ -384,7 +384,7 @@ export default function MainScreen() {
           </div>
           <button
             onClick={() => setModalState({ mode: 'add' })}
-            className="mt-4 w-full py-3.5 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-gray-400 dark:text-gray-500 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors text-sm font-medium"
+            className="mt-4 w-full py-3.5 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-gray-600 dark:text-gray-500 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors text-sm font-medium"
             aria-label="手動で記録を追加"
           >
             + 手動で記録を追加
@@ -396,7 +396,7 @@ export default function MainScreen() {
           {loading ? (
             <div className="flex items-center justify-center py-8" role="status">
               <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" aria-label="読み込み中" />
-              <span className="ml-3 text-gray-400 dark:text-gray-500 text-sm">読み込み中...</span>
+              <span className="ml-3 text-gray-600 dark:text-gray-500 text-sm">読み込み中...</span>
             </div>
           ) : (
             <RecentList records={recentRecords} />

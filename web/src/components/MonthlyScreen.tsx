@@ -172,7 +172,7 @@ export default function MonthlyScreen() {
         {loading ? (
           <div className="flex items-center justify-center py-8" role="status">
             <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" aria-label="読み込み中" />
-            <span className="ml-3 text-gray-400 dark:text-gray-500 text-sm">読み込み中...</span>
+            <span className="ml-3 text-gray-600 dark:text-gray-500 text-sm">読み込み中...</span>
           </div>
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -212,7 +212,7 @@ export default function MonthlyScreen() {
                             {dayData[t] ? (
                               <span className="inline-flex flex-col items-center leading-tight">
                                 <span className="text-green-600 dark:text-green-400 font-bold text-base">✓</span>
-                                <span className="text-gray-400 dark:text-gray-500 text-xs">{dayData[t].time}</span>
+                                <span className="text-gray-600 dark:text-gray-500 text-xs">{dayData[t].time}</span>
                               </span>
                             ) : (
                               <span className="text-gray-200 dark:text-gray-600">—</span>
