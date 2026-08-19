@@ -8,6 +8,7 @@ import {
   createRecordForHousehold,
   deleteRecordForHousehold,
   listRecordsForHousehold,
+  listDailyConditionsForHousehold,
   updateRecordForHousehold,
 } from './household-records.ts'
 import { decodeSK } from './dynamodb.ts'
@@ -219,10 +220,12 @@ export function makePdfHandler({
 export function makeCareEventExportHandler({
   resolveHousehold = resolveRequestHousehold,
   listRecords = listRecordsForHousehold,
+  listConditions = listDailyConditionsForHousehold,
   buildExport = buildMedicationPromiseExport,
 }: {
   resolveHousehold?: HouseholdResolver
   listRecords?: typeof listRecordsForHousehold
+  listConditions?: typeof listDailyConditionsForHousehold
   buildExport?: typeof buildMedicationPromiseExport
 } = {}) {
   return async function GET(request: Request) {
@@ -250,8 +253,11 @@ export function makeCareEventExportHandler({
     }
 
     try {
-      const records = await listRecords(resolved.household, { from, to })
-      const body = buildExport(records)
+      const [records, dailyConditions] = await Promise.all([
+        listRecords(resolved.household, { from, to }),
+        listConditions(resolved.household, { from, to }),
+      ])
+      const body = buildExport(records, dailyConditions)
       return Response.json(body, {
         headers: {
           'Cache-Control': 'no-store',

@@ -56,6 +56,24 @@ export async function getDailyConditionForHousehold(
   return item ? toApiCondition(item as ConditionItem) : null
 }
 
+export async function listDailyConditionsForHousehold(
+  household: AuthenticatedHousehold,
+  query: { from: string; to: string },
+  client: QueryClient = docClient
+) {
+  const result = await client.send(new QueryCommand({
+    TableName: TABLE_NAME,
+    KeyConditionExpression: 'PK = :pk AND SK BETWEEN :from AND :to',
+    ExpressionAttributeValues: {
+      ':pk': household.partitionKey,
+      ':from': `WELLNESS#${query.from}`,
+      ':to': `WELLNESS#${query.to}~`,
+    },
+    ScanIndexForward: true,
+  }))
+  return (result.Items as ConditionItem[] ?? []).map(toApiCondition)
+}
+
 export async function putDailyConditionForHousehold(
   household: AuthenticatedHousehold,
   input: { date: string; score: DailyCondition['score']; note?: string },

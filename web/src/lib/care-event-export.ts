@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { TIMING_DEFAULTS, type Timing } from './constants.ts'
 import { isValidDate } from './record-validation.ts'
-import type { MedicationRecord } from '../types/index.ts'
+import type { DailyCondition, MedicationRecord } from '../types/index.ts'
 
 export const CARE_EVENT_SCHEMA_VERSION = 'care-event/v1' as const
 export const MEDICATION_PROMISE_EXPORT_VERSION = 'medication-promise-export/v1' as const
@@ -46,6 +46,7 @@ export interface MedicationPromiseExport {
   purpose: 'personal_review'
   recordCount: number
   records: MedicationCareEvent[]
+  dailyConditions: DailyCondition[]
   limitations: string[]
 }
 
@@ -128,8 +129,11 @@ export function toMedicationCareEvent(
 
 export function buildMedicationPromiseExport(
   records: MedicationRecord[],
+  dailyConditionsOrNow: DailyCondition[] | Date = [],
   now = new Date()
 ): MedicationPromiseExport {
+  const dailyConditions = dailyConditionsOrNow instanceof Date ? [] : dailyConditionsOrNow
+  if (dailyConditionsOrNow instanceof Date) now = dailyConditionsOrNow
   const exportedAt = normalizedIsoDateTime(now.toISOString(), 'exportedAt')
   const events = records.map((record) => toMedicationCareEvent(record, exportedAt))
 
@@ -140,6 +144,7 @@ export function buildMedicationPromiseExport(
     purpose: 'personal_review',
     recordCount: events.length,
     records: events,
+    dailyConditions,
     limitations: [
       '記録は実際の服薬を医学的に証明するものではありません。',
       '記録がない時間帯を未服薬として補完していません。',
