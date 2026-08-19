@@ -53,7 +53,7 @@ test('generated export validates against the published Draft 2020-12 schema', ()
 
 test('export includes daily condition scores without household identifiers', () => {
   const condition: DailyCondition = {
-    date: '2035-01-15', score: 4, observedAt: '2035-01-15T13:00:00.000Z', note: '合成メモ',
+    date: '2035-01-15', score: 4, observedAt: '2035-01-15T13:00:00.000Z', recordedAt: '2035-01-15T13:01:00.000Z', note: '合成メモ',
   }
   const exported = buildMedicationPromiseExport(fixture, [condition], new Date('2035-01-16T00:00:00.000Z'))
   assert.deepEqual(exported.dailyConditions, [condition])

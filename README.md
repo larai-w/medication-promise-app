@@ -23,7 +23,7 @@ This project demonstrates end-to-end Technical PM capability in a HealthTech con
 | Alexa voice recording and daily reminders | Working household MVP |
 | Protected medication name and reminder settings | Deployed household MVP |
 | Household-scoped Web data boundary | Deployed; Cognito + membership flow verified in production with synthetic data |
-| Versioned JSON export | Implemented and synthetic-contract verified; production Web deployment remains a separate gate |
+| Versioned JSON export | Implemented, synthetic-contract verified, and deployed for authenticated personal review |
 | Household-wide deletion | Implemented and synthetic-isolation verified; production feature flag remains off pending Alexa and recovery gates |
 | Weekly report | Deterministic rule-based report is the approved default; the Bedrock prototype path is not approved for use and remains default-off |
 | Alexa account linking and household resolution | Prototype code and automated tests; skill configuration and device verification remain |
@@ -87,7 +87,9 @@ Architecture decisions are recorded as product decisions, not only implementatio
 The machine-readable export is documented in
 [Versioned Care Event Export](docs/CARE_EVENT_EXPORT.md). It uses synthetic tests,
 does not infer missed medication from absent records, and excludes identity,
-credentials, medication names, and presentation settings.
+credentials, medication names, and presentation settings. Daily condition scores are
+included as a separate `dailyConditions` collection; they are not silently converted
+into medication events.
 
 ## Local Verification
 
