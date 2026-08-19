@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { format, subDays } from 'date-fns'
+import { format, parseISO, subDays } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { TIMINGS, type Timing } from '@/lib/constants'
 import {
@@ -50,7 +50,9 @@ interface InsightsData {
 
 export default function MainScreen() {
   const today = format(new Date(), 'yyyy-MM-dd')
-  const todayLabel = format(new Date(), 'yyyy年M月d日 (eee)', { locale: ja })
+  const [selectedDate, setSelectedDate] = useState(today)
+  const selectedDateLabel = format(parseISO(selectedDate), 'yyyy年M月d日 (eee)', { locale: ja })
+  const viewingToday = selectedDate === today
 
   const [todayRecords, setTodayRecords] = useState<MedicationRecord[]>([])
   const [recentRecords, setRecentRecords] = useState<MedicationRecord[]>([])
@@ -100,9 +102,9 @@ export default function MainScreen() {
   }, [])
 
   const fetchToday = useCallback(async () => {
-    const res = await fetch(`/api/records?date=${today}`)
+    const res = await fetch(`/api/records?date=${selectedDate}`)
     setTodayRecords(await readRecords(res))
-  }, [readRecords, today])
+  }, [readRecords, selectedDate])
 
   const fetchRecent = useCallback(async () => {
     const from = format(subDays(new Date(), 6), 'yyyy-MM-dd')
@@ -132,11 +134,11 @@ export default function MainScreen() {
   }, [])
 
   const fetchCondition = useCallback(async () => {
-    const res = await fetch(`/api/condition?date=${today}`)
+    const res = await fetch(`/api/condition?date=${selectedDate}`)
     if (res.status === 401) { window.location.assign('/login'); throw new Error('ログインの有効期限が切れました') }
     if (!res.ok) throw new Error('今日の体調を読み込めませんでした')
     setCondition(await res.json() as DailyCondition | null)
-  }, [today])
+  }, [selectedDate])
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -181,7 +183,7 @@ export default function MainScreen() {
       const res = await fetch('/api/records', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: today, time: timingDefaults[timing], timing, source: 'manual' }),
+        body: JSON.stringify({ date: selectedDate, time: timingDefaults[timing], timing, source: 'manual' }),
       })
       if (res.status === 401) window.location.assign('/login')
       if (!res.ok) throw new Error()
@@ -196,7 +198,7 @@ export default function MainScreen() {
   const saveCondition = async (score: DailyCondition['score']) => {
     setConditionSaving(true)
     try {
-      const res = await fetch('/api/condition', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: today, score }) })
+      const res = await fetch('/api/condition', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: selectedDate, score }) })
       if (res.status === 401) window.location.assign('/login')
       if (!res.ok) throw new Error()
       setCondition(await res.json() as DailyCondition)
@@ -272,9 +274,30 @@ export default function MainScreen() {
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 space-y-6 pb-16">
+        <section className="flex items-center justify-between rounded-2xl bg-white dark:bg-gray-800 px-3 py-2 shadow-sm" aria-label="記録日を移動">
+          <button
+            type="button"
+            onClick={() => setSelectedDate(format(subDays(parseISO(selectedDate), 1), 'yyyy-MM-dd'))}
+            className="min-h-11 rounded-xl px-3 text-sm font-medium text-indigo-700 hover:bg-indigo-50 dark:text-indigo-300 dark:hover:bg-indigo-950"
+            aria-label="前日を表示"
+          >
+            ← 前日
+          </button>
+          <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{selectedDateLabel}</span>
+          <button
+            type="button"
+            onClick={() => setSelectedDate(today)}
+            disabled={viewingToday}
+            className="min-h-11 rounded-xl px-3 text-sm font-medium text-indigo-700 hover:bg-indigo-50 disabled:cursor-default disabled:text-gray-300 dark:text-indigo-300 dark:hover:bg-indigo-950 dark:disabled:text-gray-600"
+            aria-label="今日を表示"
+          >
+            今日
+          </button>
+        </section>
+
         <section className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm" aria-labelledby="condition-heading">
           <div className="flex items-center justify-between mb-2">
-            <div><h2 id="condition-heading" className="font-semibold text-gray-800 dark:text-gray-100">今日の体調</h2><p className="text-xs text-gray-500 dark:text-gray-400">夜に一度、1〜5で振り返ります</p></div>
+            <div><h2 id="condition-heading" className="font-semibold text-gray-800 dark:text-gray-100">{viewingToday ? '今日' : selectedDateLabel}の体調</h2><p className="text-xs text-gray-500 dark:text-gray-400">夜に一度、1〜5で振り返ります</p></div>
             {condition && <span className="text-sm text-gray-500 dark:text-gray-400">記録済み: {condition.score}</span>}
           </div>
           <div className="grid grid-cols-5 gap-2" role="group" aria-label="今日の体調を1から5で選択">
@@ -369,7 +392,7 @@ export default function MainScreen() {
         )}
 
         <section>
-          <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-4">{todayLabel}</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-4">{selectedDateLabel}</p>
           <div className="space-y-3">
             {TIMINGS.map(timing => (
               <MedicationButton
@@ -413,7 +436,7 @@ export default function MainScreen() {
           mode={modalState.mode}
           record={modalState.record}
           defaultTiming={modalState.defaultTiming}
-          today={today}
+          today={selectedDate}
           onSave={handleSave}
           onClose={() => setModalState(null)}
         />
