@@ -156,6 +156,18 @@ export default function MainScreen() {
     void Promise.resolve().then(fetchAll)
   }, [fetchAll])
 
+  useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void fetchAll()
+    }
+    window.addEventListener('focus', refreshWhenVisible)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    return () => {
+      window.removeEventListener('focus', refreshWhenVisible)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+    }
+  }, [fetchAll])
+
   const recordsByTiming = TIMINGS.reduce<Record<Timing, MedicationRecord | undefined>>(
     (acc, t) => { acc[t] = todayRecords.find(r => r.timing === t); return acc },
     {} as Record<Timing, MedicationRecord | undefined>
@@ -267,6 +279,15 @@ export default function MainScreen() {
           <Link href="/settings" className="inline-flex min-h-11 items-center rounded-full bg-white/20 px-3 text-sm transition-colors hover:bg-white/30" aria-label="設定">
             設定
           </Link>
+          <button
+            type="button"
+            onClick={() => void fetchAll()}
+            disabled={loading}
+            className="inline-flex min-h-11 items-center rounded-full bg-white/20 px-3 text-sm transition-colors hover:bg-white/30 disabled:opacity-60"
+            aria-label="記録を更新"
+          >
+            {loading ? '読込中' : '更新'}
+          </button>
           <form action="/api/access/logout" method="post">
             <button type="submit" className="min-h-11 px-3 text-xs text-white/80 hover:text-white" aria-label="ログアウト">終了</button>
           </form>
