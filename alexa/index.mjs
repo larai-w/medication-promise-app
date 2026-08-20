@@ -28,6 +28,8 @@ const INTENT_TO_TIMING = {
   'RecordNightNineIntent':  '夜9時',
 }
 
+import { minutesAgoFromIntent, speakTime, SpokenTimeError, MAX_MINUTES_AGO } from './spoken-time.mjs'
+
 const NIGHT9_MESSAGE =
   '夜9時の服薬を記録しました。今日も一日お疲れさまでした。どうぞゆっくりお休みください。'
 
@@ -144,19 +146,45 @@ export function createHandler({
     // 服薬記録（5インテント）
     const timing = INTENT_TO_TIMING[intentName]
     if (timing) {
+      // 「30分前に飲んだ」のように言われたら、その分だけ遡った時刻で記録する。
+      // 言われなければ従来どおり、話しかけた時刻を使う。
+      let minutesAgo = null
+      try {
+        minutesAgo = minutesAgoFromIntent(event.request.intent)
+      } catch (err) {
+        if (err instanceof SpokenTimeError) {
+          // 聞き間違いをそのまま記録しない。言い直してもらう。
+          return respond(
+            `すみません、いつ飲んだか聞き取れませんでした。`
+            + `${MAX_MINUTES_AGO / 60}時間以内で、「30分前」のように言ってください。`,
+            false
+          )
+        }
+        throw err
+      }
+
+      let recorded
       try {
         if (isLinked) {
           const household = await resolveHousehold(event)
-          await recordMedicationForHouseholdFn(household, timing)
+          recorded = await recordMedicationForHouseholdFn(household, timing, { minutesAgo })
         } else {
-          await recordMedicationFn(timing)
+          recorded = await recordMedicationFn(timing, { minutesAgo })
         }
       } catch (err) {
         if (err instanceof AlexaHouseholdError) return respond(err.speech)
         console.error('DynamoDB error:', err)
         return respond('申し訳ありません、記録中にエラーが発生しました。もう一度お試しください。')
       }
-      const speech = timing === '夜9時' ? NIGHT9_MESSAGE : `${timing}の服薬を記録しました。`
+
+      // 時刻を指定されたときは、解釈した時刻を必ず読み上げる。
+      // 聞き間違いに本人が気づける唯一の手段。
+      const when = minutesAgo !== null && recorded?.time
+        ? `${speakTime(recorded.time)}に飲んだ、`
+        : ''
+      const speech = timing === '夜9時' && minutesAgo === null
+        ? NIGHT9_MESSAGE
+        : `${when}${timing}の服薬を記録しました。`
       return respond(speech)
     }
 
