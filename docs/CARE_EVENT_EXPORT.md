@@ -37,6 +37,10 @@ The current record does not distinguish whether the person entering it was the
 patient or a family caregiver. The export therefore omits `actorId` and `actorRole`
 instead of inferring them.
 
+An optional `payload.medicationRef` may be exported when the source record contains
+an opaque `med-...` reference. It is not a medication name and does not establish
+clinical identity; absent values remain absent.
+
 Every exported source record has `missingness: "observed"`. Absence of a record is
 not converted to `medication_missed`, `confirmed_none`, or any adherence conclusion.
 The export is marked `personal_review`; it does not grant research use or establish
