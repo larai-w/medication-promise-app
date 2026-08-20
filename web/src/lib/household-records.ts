@@ -33,6 +33,7 @@ function toApiRecord(item: DynamoRecord): MedicationRecord {
     time: item.time,
     timing: item.timing,
     source: item.source,
+    medicationRef: item.medicationRef,
     notes: item.notes,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
@@ -140,7 +141,7 @@ export async function listRecordsForHousehold(
 
 export async function createRecordForHousehold(
   household: AuthenticatedHousehold,
-  input: { date: string; time: string; timing: MedicationRecord['timing']; notes?: string },
+  input: { date: string; time: string; timing: MedicationRecord['timing']; medicationRef?: string; notes?: string },
   client: MutationClient = docClient
 ) {
   const sk = makeSK(input.date, input.time, randomUUID())
@@ -154,6 +155,7 @@ export async function createRecordForHousehold(
     time: input.time,
     timing: input.timing,
     source: 'manual',
+    ...(input.medicationRef ? { medicationRef: input.medicationRef } : {}),
     notes: input.notes,
     createdAt: now,
   }
@@ -174,7 +176,7 @@ export async function createRecordForHousehold(
 export async function updateRecordForHousehold(
   household: AuthenticatedHousehold,
   encodedId: string,
-  input: { time?: string; timing?: MedicationRecord['timing']; notes?: string },
+  input: { time?: string; timing?: MedicationRecord['timing']; medicationRef?: string; notes?: string },
   client: MutationClient = docClient
 ) {
   const sk = decodeSK(encodedId)
@@ -185,6 +187,7 @@ export async function updateRecordForHousehold(
 
   if (input.time !== undefined) { updateParts.push('#t = :time'); values[':time'] = input.time }
   if (input.timing !== undefined) { updateParts.push('timing = :timing'); values[':timing'] = input.timing }
+  if (input.medicationRef !== undefined) { updateParts.push('medicationRef = :medicationRef'); values[':medicationRef'] = input.medicationRef }
   if (input.notes !== undefined) { updateParts.push('notes = :notes'); values[':notes'] = input.notes }
 
   if (household.partitionMode === 'household') {

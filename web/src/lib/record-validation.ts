@@ -64,6 +64,14 @@ function parseNotes(value: unknown) {
   return notes || undefined
 }
 
+function parseMedicationRef(value: unknown) {
+  if (value === undefined || value === null || value === '') return undefined
+  if (typeof value !== 'string' || !/^med-[A-Za-z0-9_-]{1,80}$/.test(value)) {
+    throw new InputValidationError('薬剤参照はmed-で始まる英数字の識別子にしてください')
+  }
+  return value
+}
+
 function parseTime(value: unknown) {
   if (typeof value !== 'string' || !TIME_PATTERN.test(value)) {
     throw new InputValidationError('時刻はHH:MM形式で入力してください')
@@ -88,6 +96,7 @@ export function parseCreateRecordInput(value: unknown) {
     date: body.date,
     time: parseTime(body.time),
     timing: parseTiming(body.timing),
+    ...(parseMedicationRef(body.medicationRef) ? { medicationRef: parseMedicationRef(body.medicationRef) } : {}),
     notes: parseNotes(body.notes),
   }
 }
@@ -100,11 +109,13 @@ export function parseUpdateRecordInput(value: unknown) {
   const result: {
     time?: string
     timing?: '朝' | '昼' | '晩' | '夜8時' | '夜9時'
+    medicationRef?: string
     notes?: string
   } = {}
 
   if (body.time !== undefined) result.time = parseTime(body.time)
   if (body.timing !== undefined) result.timing = parseTiming(body.timing)
+  if (body.medicationRef !== undefined) result.medicationRef = parseMedicationRef(body.medicationRef)
   if (body.notes !== undefined) result.notes = parseNotes(body.notes) ?? ''
   if (Object.keys(result).length === 0) throw new InputValidationError('更新内容がありません')
   return result

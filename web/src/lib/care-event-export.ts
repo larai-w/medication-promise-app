@@ -22,6 +22,7 @@ export interface MedicationCareEvent {
     scheduledTime: string
     actualTime: string
     inputSource: MedicationRecord['source']
+    medicationRef?: string
     notes?: string
   }
   missingness: 'observed'
@@ -109,6 +110,7 @@ export function toMedicationCareEvent(
       scheduledTime,
       actualTime: record.time,
       inputSource: record.source,
+      ...(record.medicationRef ? { medicationRef: record.medicationRef } : {}),
       ...(record.notes ? { notes: record.notes } : {}),
     },
     missingness: 'observed',
