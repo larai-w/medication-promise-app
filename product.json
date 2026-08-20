@@ -37,6 +37,7 @@
 			"AWS Lambda",
 			"Amazon DynamoDB"
 		],
+		"liveUrl": "https://kusuri.veai.jp/",
 		"en": {
 			"name": "Medication Promise",
 			"tagline": "Medication records by tap or Alexa for one private household",
