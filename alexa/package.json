@@ -7,7 +7,7 @@
   "scripts": {
     "install-prod": "npm install --omit=dev",
     "test": "node --test",
-    "zip": "zip -r skill.zip index.mjs config.mjs dynamodb.mjs household.mjs cognito.mjs node_modules package.json"
+    "zip": "rm -f skill.zip && zip -r skill.zip index.mjs config.mjs dynamodb.mjs household.mjs cognito.mjs spoken-time.mjs node_modules package.json"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.0.0",

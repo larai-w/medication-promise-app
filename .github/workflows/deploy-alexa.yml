@@ -38,6 +38,8 @@ jobs:
       - run: node --check index.mjs
       - run: npm test
       - run: npm run zip
+      - name: Verify Lambda zip manifest
+        run: unzip -Z1 skill.zip | grep -qx 'spoken-time.mjs'
 
       - name: Require deployment settings
         env:
