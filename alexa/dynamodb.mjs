@@ -15,9 +15,11 @@ const docClient = DynamoDBDocumentClient.from(client, {
 
 const SETTINGS_SK = 'SETTINGS#medication'
 
-// Lambda は UTC で動くので JST (+9h) に変換する
-function nowJST() {
-  const jst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+// Lambda は UTC で動くので JST (+9h) に変換する。
+// minutesAgo を渡すと、その分だけ遡った時刻を返す（「30分前に飲んだ」用）。
+// 日をまたぐ場合は date も前日になる。
+function nowJST(minutesAgo = 0) {
+  const jst = new Date(Date.now() + 9 * 60 * 60 * 1000 - minutesAgo * 60 * 1000)
   return {
     date: jst.toISOString().slice(0, 10),  // YYYY-MM-DD
     time: jst.toISOString().slice(11, 16), // HH:MM
@@ -25,8 +27,12 @@ function nowJST() {
   }
 }
 
-export async function recordMedication(timing) {
-  const { date, time, iso } = nowJST()
+export async function recordMedication(timing, { minutesAgo = null } = {}) {
+  // date/time は「飲んだ時刻」、createdAt は「記録した時刻」。別物として保存する。
+  // care-event export は date/time を actualTime / occurredAt に使うため、
+  // ここに記録時刻を入れてしまうと事実と違う値が研究データへ流れる。
+  const { date, time } = nowJST(minutesAgo ?? 0)
+  const { iso } = nowJST()
   const uuid = randomUUID()
   const pk   = `USER#${USER_ID}`
   const sk   = `RECORD#${date}T${time}:00#${uuid}`
@@ -42,6 +48,8 @@ export async function recordMedication(timing) {
       timing,
       source:    'alexa',
       createdAt: iso,
+      // 時刻を本人が言ったのか、記録時刻で代用したのかを残す
+      timeSource: minutesAgo === null ? 'recorded' : 'stated',
     },
   }))
 
@@ -111,9 +119,10 @@ function activeMembershipCondition(household) {
   }
 }
 
-export async function recordMedicationForHousehold(household, timing, { client = docClient } = {}) {
+export async function recordMedicationForHousehold(household, timing, { client = docClient, minutesAgo = null } = {}) {
   assertHousehold(household)
-  const { date, time, iso } = nowJST()
+  const { date, time } = nowJST(minutesAgo ?? 0)
+  const { iso } = nowJST()
   const uuid = randomUUID()
   const sk   = `RECORD#${date}T${time}:00#${uuid}`
 
@@ -131,6 +140,7 @@ export async function recordMedicationForHousehold(household, timing, { client =
           timing,
           source:    'alexa',
           createdAt: iso,
+          timeSource: minutesAgo === null ? 'recorded' : 'stated',
         },
       } },
     ],

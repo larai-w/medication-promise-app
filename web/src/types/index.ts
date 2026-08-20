@@ -7,6 +7,7 @@ export interface MedicationRecord {
   time: string       // HH:MM
   timing: Timing
   source: 'alexa' | 'manual'
+  medicationRef?: string // opaque reference for governed downstream research export
   notes?: string
   createdAt: string  // ISO8601
   updatedAt?: string // ISO8601
@@ -17,12 +18,14 @@ export interface CreateRecordInput {
   time: string       // HH:MM
   timing: Timing
   source?: 'alexa' | 'manual'
+  medicationRef?: string
   notes?: string
 }
 
 export interface UpdateRecordInput {
   time?: string
   timing?: Timing
+  medicationRef?: string
   notes?: string
 }
 
@@ -34,6 +37,7 @@ export interface DynamoRecord {
   time: string
   timing: Timing
   source: 'alexa' | 'manual'
+  medicationRef?: string
   notes?: string
   createdAt: string
   updatedAt?: string

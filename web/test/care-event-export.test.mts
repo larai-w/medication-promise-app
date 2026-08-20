@@ -51,6 +51,17 @@ test('generated export validates against the published Draft 2020-12 schema', ()
   assert.deepEqual(exported.dailyConditions, [])
 })
 
+test('preserves an optional opaque medication reference without exporting a medication name', () => {
+  const exported = buildMedicationPromiseExport(
+    [{ ...fixture[0], medicationRef: 'med-synthetic-a' }],
+    new Date('2035-01-16T00:00:00.000Z')
+  )
+
+  assert.equal(exported.records[0].payload.medicationRef, 'med-synthetic-a')
+  assert.equal(JSON.stringify(exported).includes('medicationName'), false)
+  assert.equal(JSON.stringify(exported).includes('レボドパ'), false)
+})
+
 test('export includes daily condition scores without household identifiers', () => {
   const condition: DailyCondition = {
     date: '2035-01-15', score: 4, observedAt: '2035-01-15T13:00:00.000Z', recordedAt: '2035-01-15T13:01:00.000Z', note: '合成メモ',
@@ -90,6 +101,14 @@ test('rejects records with invalid provenance timestamps', () => {
   assert.throws(
     () => toMedicationCareEvent({ ...fixture[0], createdAt: 'invalid' }, '2035-01-16T00:00:00.000Z'),
     CareEventExportError
+  )
+})
+
+test('rejects non-opaque medication references at the input boundary', async () => {
+  const { parseCreateRecordInput } = await import('../src/lib/record-validation.ts')
+  assert.throws(
+    () => parseCreateRecordInput({ ...fixture[0], medicationRef: 'レボドパ' }),
+    /薬剤参照/
   )
 })
 
