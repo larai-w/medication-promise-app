@@ -1,5 +1,10 @@
+import ConsentGate from '@/components/ConsentGate'
 import MainScreen from '@/components/MainScreen'
 
 export default function Home() {
-  return <MainScreen />
+  return (
+    <ConsentGate>
+      <MainScreen />
+    </ConsentGate>
+  )
 }
