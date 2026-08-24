@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 import {
   CONSENT_UNVERIFIED_NOTICE,
@@ -23,12 +24,28 @@ import { BASIC_CONSENT_SECTIONS } from '@/lib/consent/consent-text'
 
 type ConsentState = Record<ConsentType, ConsentEvaluation>
 
+/**
+ * 同意なしで見られる画面。**ここに無い画面はすべてゲートされる。**
+ *
+ * 画面ごとにゲートを付ける形にすると、新しい画面を足したときに必ず忘れる。
+ * 2026-08-24: `/` にしか付いておらず、`/monthly` と `/settings` が
+ * 素通りだった（記録の中身が同意なしで見られる状態）。
+ *
+ * - `/login`   … 同意以前にログインが要る
+ * - `/privacy` … **同意する前に読めなければ意味がない**
+ * - `/terms`   … 同上
+ */
+const UNGATED_PATHS = ['/login', '/privacy', '/terms']
+
 export default function ConsentGate({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const ungated = UNGATED_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
   const [decision, setDecision] = useState<ConsentGateDecision | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (ungated) return
     let cancelled = false
 
     async function resolveDecision(): Promise<ConsentGateDecision> {
@@ -52,7 +69,7 @@ export default function ConsentGate({ children }: { children: React.ReactNode })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [ungated])
 
   async function agree() {
     setSubmitting(true)
@@ -77,6 +94,9 @@ export default function ConsentGate({ children }: { children: React.ReactNode })
       setSubmitting(false)
     }
   }
+
+  // 同意なしで見られる画面は素通しする（ポリシーは同意前に読めないと意味がない）
+  if (ungated) return <>{children}</>
 
   // 判定前は何も差し込まない（画面のちらつきを避ける）
   if (decision === null) return <>{children}</>

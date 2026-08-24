@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import ConsentGate from "@/components/ConsentGate";
 
 export const metadata: Metadata = {
   title: "おくすりの約束",
@@ -42,7 +43,11 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {/* 既定でゲートする。同意なしで見られる画面は ConsentGate の
+            UNGATED_PATHS で明示する。画面ごとに付けると足したときに忘れる */}
+        <ConsentGate>{children}</ConsentGate>
+      </body>
     </html>
   );
 }
