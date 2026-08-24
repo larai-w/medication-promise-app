@@ -107,8 +107,14 @@ export async function revokeConsent(
  *
  * DynamoDB が落ちているときに「判断がつかないので通す」をやると、
  * 撤回済みの利用者のデータを扱ってしまう。fail closed。
- * ただし呼び出し側は、これが false のときに「同意していない」と
- * 「確認できなかった」を区別できないので、必ずログに残すこと。
+ *
+ * **ただし `absent`（同意していない）と `unavailable`（読めなかった）は
+ * 区別して返す。** 呼び出し側で扱いが違う:
+ *
+ * - **研究用エクスポート等のデータ利用**: どちらも通さない（fail closed）
+ * - **アプリ本体の利用**: `absent` なら同意画面を出す。
+ *   `unavailable` で締め出してはいけない。服薬の記録は、こちらの障害を
+ *   理由に止めてよいものではない（CLAUDE.md §2.6）
  */
 export async function hasConsent(
   userId: string,
@@ -125,7 +131,7 @@ export async function hasConsent(
       `[CONSENT READ FAILED] userId=${userId} consentType=${consentType}`,
       error instanceof Error ? error.message : error,
     )
-    return { granted: false, ownStatus: 'absent' }
+    return { granted: false, ownStatus: 'unavailable' }
   }
 }
 

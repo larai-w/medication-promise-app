@@ -150,7 +150,20 @@ test('読み取りに失敗したら granted を返さない（fail closed）', 
   })
   const result = await hasConsent('u1', 'basic', NOW)
   assert.equal(result.granted, false)
-  assert.equal(result.ownStatus, 'absent')
+})
+
+// ここを混ぜると、DB が落ちただけで服薬の記録ができなくなる。
+// 逆に unavailable を absent と読むと、同意画面を出して「同意する」を
+// 押させ、書き込みも失敗する、という最悪の体験になる。
+test('「同意が無い」と「読めなかった」を区別する', async () => {
+  stubSend(() => {
+    throw new Error('DynamoDB unavailable')
+  })
+  assert.equal((await hasConsent('u1', 'basic', NOW)).ownStatus, 'unavailable')
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(docClient as any).send = async () => ({ Items: [] })
+  assert.equal((await hasConsent('u1', 'basic', NOW)).ownStatus, 'absent')
 })
 
 test('保存された status が granted でも、期限切れなら granted を返さない', async () => {

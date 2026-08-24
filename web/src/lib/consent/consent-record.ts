@@ -83,8 +83,14 @@ export function effectiveStatus(record: ConsentRecord, now: Date): ConsentStatus
 export interface ConsentEvaluation {
   /** 前提条件も含めて、この種別の同意が今も有効か */
   granted: boolean
-  /** この種別そのものの状態。前提条件は見ていない */
-  ownStatus: ConsentStatus | 'absent'
+  /**
+   * この種別そのものの状態。前提条件は見ていない。
+   *
+   * `absent` は「同意レコードが無い」。
+   * `unavailable` は「**読めなかった**」。両者を混ぜてはいけない。
+   * 前者は同意画面を出す合図、後者は障害であって、扱いが違う。
+   */
+  ownStatus: ConsentStatus | 'absent' | 'unavailable'
   /** granted でない理由。前提条件で落ちた場合はその種別名 */
   blockedBy?: ConsentType
 }
