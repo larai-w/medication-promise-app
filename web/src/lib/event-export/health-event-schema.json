@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://medication-promise.example/event-export/health-event-schema.json",
+  "title": "Medication Promise Health Event Envelope",
+  "description": "Schema for synthetic-only health events exported from Medication Promise. No real patient data. Research assetization use only.",
+  "type": "object",
+  "required": ["envelope_version", "classification", "event", "consent"],
+  "properties": {
+    "envelope_version": {
+      "type": "string",
+      "const": "medpromise-event-v1",
+      "description": "Envelope schema version identifier"
+    },
+    "classification": {
+      "type": "string",
+      "const": "synthetic",
+      "description": "Must always be synthetic. Real patient data is prohibited."
+    },
+    "event": {
+      "$ref": "#/$defs/event"
+    },
+    "consent": {
+      "$ref": "#/$defs/consent"
+    },
+    "export_metadata": {
+      "$ref": "#/$defs/exportMetadata"
+    }
+  },
+  "$defs": {
+    "event": {
+      "type": "object",
+      "required": ["event_type", "event_id", "occurred_at", "recorded_at", "payload"],
+      "properties": {
+        "event_type": {
+          "type": "string",
+          "enum": ["medication_record", "daily_condition"],
+          "description": "Discriminator for payload schema"
+        },
+        "event_id": {
+          "type": "string",
+          "pattern": "^evt-(med|cond)-[0-9]{8}-[0-9]{3}$",
+          "description": "Unique event identifier, e.g. evt-med-20260822-001"
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/isoDateTime",
+          "description": "When the event occurred (ISO 8601 with timezone)"
+        },
+        "recorded_at": {
+          "$ref": "#/$defs/isoDateTime",
+          "description": "When the event was recorded in the app"
+        },
+        "payload": {
+          "type": "object",
+          "description": "Event-type-specific payload"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "event_type": { "const": "medication_record" } }
+          },
+          "then": {
+            "properties": {
+              "payload": { "$ref": "#/$defs/medicationRecordPayload" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "event_type": { "const": "daily_condition" } }
+          },
+          "then": {
+            "properties": {
+              "payload": { "$ref": "#/$defs/dailyConditionPayload" }
+            }
+          }
+        }
+      ]
+    },
+    "medicationRecordPayload": {
+      "type": "object",
+      "required": ["date", "time", "timing", "source", "has_note"],
+      "properties": {
+        "date": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "Record date in YYYY-MM-DD format"
+        },
+        "time": {
+          "type": "string",
+          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+          "description": "Record time in HH:MM format"
+        },
+        "timing": {
+          "type": "string",
+          "enum": ["morning", "lunch", "evening", "bedtime"],
+          "description": "Medication timing slot"
+        },
+        "source": {
+          "type": "string",
+          "enum": ["alexa", "manual"],
+          "description": "Record source"
+        },
+        "medication_ref": {
+          "type": ["string", "null"],
+          "maxLength": 200,
+          "description": "Opaque medication reference. No real drug name."
+        },
+        "has_note": {
+          "type": "boolean",
+          "description": "Whether a note was attached. Note content is never exported."
+        }
+      },
+      "additionalProperties": false
+    },
+    "dailyConditionPayload": {
+      "type": "object",
+      "required": ["date", "score", "scale", "has_note"],
+      "properties": {
+        "date": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "Condition date in YYYY-MM-DD format"
+        },
+        "score": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Daily condition score on 1-5 scale"
+        },
+        "scale": {
+          "type": "string",
+          "const": "1-5",
+          "description": "Scale identifier"
+        },
+        "has_note": {
+          "type": "boolean",
+          "description": "Whether a note was attached. Note content is never exported."
+        }
+      },
+      "additionalProperties": false
+    },
+    "consent": {
+      "type": "object",
+      "required": ["status", "granted_at", "scope"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["granted", "pending", "withdrawn"],
+          "description": "Consent status. withdrawn and pending block export."
+        },
+        "granted_at": {
+          "$ref": "#/$defs/isoDateTime",
+          "description": "When consent was granted"
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["research-export", "local-analysis"]
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Consented use scopes"
+        },
+        "withdrawal_mechanism": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "How consent can be withdrawn"
+        }
+      },
+      "additionalProperties": false
+    },
+    "exportMetadata": {
+      "type": "object",
+      "required": ["exported_at", "export_batch_id", "timezone"],
+      "properties": {
+        "exported_at": {
+          "$ref": "#/$defs/isoDateTime",
+          "description": "Export timestamp"
+        },
+        "export_batch_id": {
+          "type": "string",
+          "pattern": "^batch-[0-9]{8}-[0-9]{3}$",
+          "description": "Export batch identifier"
+        },
+        "timezone": {
+          "type": "string",
+          "pattern": "^[+-][0-9]{2}:[0-9]{2}$",
+          "description": "UTC offset timezone, e.g. +09:00"
+        }
+      },
+      "additionalProperties": false
+    },
+    "isoDateTime": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([+-][0-9]{2}:[0-9]{2}|Z)$",
+      "description": "ISO 8601 datetime with timezone offset"
+    }
+  }
+}
