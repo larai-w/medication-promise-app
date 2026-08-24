@@ -19,9 +19,13 @@ export const PRIVACY_POLICY_UPDATED_LABEL = '2026年8月19日'
 
 /**
  * 同意画面で見せた文言の版。プライバシーポリシーとは別に動く。
- * 文言を変えたら上げる。
+ * **文言を変えたら必ず上げる。** 上げ忘れると、違う文章に同意した人が
+ * 同じ版で記録され、「何に同意したか」を後から復元できない。
+ *
+ * 書式は `YYYY-MM-DD` か `YYYY-MM-DD-N`。同じ日に2回以上直すことがあるので
+ * 連番を付けられるようにしてある（`-2` が同日の2版目）。
  */
-export const CONSENT_TEXT_VERSION = '2026-08-24'
+export const CONSENT_TEXT_VERSION = '2026-08-24-2'
 
 /** `2026年8月19日` → `2026-08-19`。表記と版がずれていないかの検算用。 */
 export function labelToIsoDate(label: string): string | null {

@@ -27,11 +27,16 @@ test('labelToIsoDate は1桁の月日をゼロ埋めし、読めない表記は 
   assert.equal(labelToIsoDate(''), null)
 })
 
-test('版は YYYY-MM-DD の形をしている', () => {
-  for (const v of [PRIVACY_POLICY_VERSION, CONSENT_TEXT_VERSION]) {
-    assert.match(v, /^\d{4}-\d{2}-\d{2}$/, `版の形が違う: ${v}`)
-    assert.ok(!Number.isNaN(new Date(v).getTime()), `版が日付として読めない: ${v}`)
-  }
+test('ポリシーの版は YYYY-MM-DD（画面の表記と突き合わせるため）', () => {
+  assert.match(PRIVACY_POLICY_VERSION, /^\d{4}-\d{2}-\d{2}$/)
+  assert.ok(!Number.isNaN(new Date(PRIVACY_POLICY_VERSION).getTime()))
+})
+
+test('文言の版は YYYY-MM-DD か YYYY-MM-DD-N（同日に2回直すことがある）', () => {
+  const m = CONSENT_TEXT_VERSION.match(/^(\d{4}-\d{2}-\d{2})(?:-(\d+))?$/)
+  assert.ok(m, `版の形が違う: ${CONSENT_TEXT_VERSION}`)
+  assert.ok(!Number.isNaN(new Date(m[1]).getTime()), `日付として読めない: ${m[1]}`)
+  if (m[2]) assert.ok(Number(m[2]) >= 2, '同日の連番は 2 から始める')
 })
 
 test('プライバシーポリシーの画面は定数を使っていて、日付を直書きしていない', () => {
