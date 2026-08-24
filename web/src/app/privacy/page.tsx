@@ -1,8 +1,11 @@
 import LegalDocument from '@/components/LegalDocument'
+import { PRIVACY_POLICY_UPDATED_LABEL } from '@/lib/consent/consent-versions'
 
 export default function PrivacyPage() {
   return (
-    <LegalDocument title="プライバシーポリシー" updated="2026年8月19日">
+    // 表示する更新日は consent-versions.ts を唯一の出所にする。
+    // 同意レコードの ppVersion と、画面に出ている版がずれないようにするため。
+    <LegalDocument title="プライバシーポリシー" updated={PRIVACY_POLICY_UPDATED_LABEL}>
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">1. この文書について</h2>
         <p>VEAI LAB.は、服薬記録・生活支援ツール「おくすりの約束」の限定テストを運営します。この文書では、テスト中に扱う情報と、その利用方法を説明します。</p>
