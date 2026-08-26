@@ -10,6 +10,30 @@ permissions:
   contents: read
 
 jobs:
+  care-event-schema-drift:
+    name: Care-event schema drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: subject
+
+      - name: Check out canonical care-event contract
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: larai-w/GutPacer-ParkinSync-Module
+          path: canonical
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - name: Fail if the medication subset widens or drops canonical constraints
+        run: |
+          node subject/web/scripts/check-care-event-schema-drift.mjs \
+            canonical/schema/care-event-v1.schema.json \
+            subject/docs/schemas/medication-promise-export-v1.schema.json
+
   # ────────────────────────────────────────────
   # CI: Web lint & build
   # ────────────────────────────────────────────
