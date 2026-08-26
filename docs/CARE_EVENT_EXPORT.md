@@ -17,6 +17,11 @@ override a household.
 The response is an attachment using `medication-promise-export/v1`. Each item follows
 the `care-event/v1` medication-event subset documented by
 [`schemas/medication-promise-export-v1.schema.json`](schemas/medication-promise-export-v1.schema.json).
+The canonical `care-event/v1` schema is maintained in the public
+[`GutPacer-ParkinSync-Module`](https://github.com/larai-w/GutPacer-ParkinSync-Module/blob/main/schema/care-event-v1.schema.json)
+repository. This repository intentionally encodes a stricter medication-only specialization rather
+than copying the full schema. CI checks that the specialization retains every canonical required
+field, preserves closed nested objects and formats, and only narrows canonical enums and constants.
 
 ## Data boundary
 
