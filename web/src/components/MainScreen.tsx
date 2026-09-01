@@ -68,6 +68,8 @@ export default function MainScreen() {
   const [insights, setInsights] = useState<InsightsData | null>(null)
   const [condition, setCondition] = useState<DailyCondition | null>(null)
   const [conditionSaving, setConditionSaving] = useState(false)
+  const [noteDraft, setNoteDraft] = useState('')
+  const [noteSaving, setNoteSaving] = useState(false)
 
   const toggleTheme = () => {
     const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
@@ -137,7 +139,9 @@ export default function MainScreen() {
     const res = await fetch(`/api/condition?date=${selectedDate}`)
     if (res.status === 401) { window.location.assign('/login'); throw new Error('ログインの有効期限が切れました') }
     if (!res.ok) throw new Error('今日の体調を読み込めませんでした')
-    setCondition(await res.json() as DailyCondition | null)
+    const loaded = await res.json() as DailyCondition | null
+    setCondition(loaded)
+    setNoteDraft(loaded?.note ?? '')
   }, [selectedDate])
 
   const fetchAll = useCallback(async () => {
@@ -210,12 +214,32 @@ export default function MainScreen() {
   const saveCondition = async (score: DailyCondition['score']) => {
     setConditionSaving(true)
     try {
-      const res = await fetch('/api/condition', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: selectedDate, score }) })
+      // ⚠️ PUT は item ごと置き換える。note を送らないと**既存のメモが消える**。
+      const res = await fetch('/api/condition', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: selectedDate, score, note: condition?.note }) })
       if (res.status === 401) window.location.assign('/login')
       if (!res.ok) throw new Error()
-      setCondition(await res.json() as DailyCondition)
+      const saved = await res.json() as DailyCondition
+      setCondition(saved)
+      setNoteDraft(saved.note ?? '')
     } catch { setError('体調の保存に失敗しました。もう一度お試しください。') }
     finally { setConditionSaving(false) }
+  }
+
+  // その日のメモ。服薬の記録とは別に、一日について残しておける場所。
+  // score は API 側で必須なので、体調が未記録のときは保存させない
+  // （勝手に 3 を入れたりしない。記録していない体調を作らない）。
+  const saveConditionNote = async () => {
+    if (!condition) return
+    setNoteSaving(true)
+    try {
+      const res = await fetch('/api/condition', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: selectedDate, score: condition.score, note: noteDraft.trim() || undefined }) })
+      if (res.status === 401) window.location.assign('/login')
+      if (!res.ok) throw new Error()
+      const saved = await res.json() as DailyCondition
+      setCondition(saved)
+      setNoteDraft(saved.note ?? '')
+    } catch { setError('メモの保存に失敗しました。もう一度お試しください。') }
+    finally { setNoteSaving(false) }
   }
 
   const handleDelete = (id: string) => {
@@ -328,6 +352,35 @@ export default function MainScreen() {
             })}
           </div>
           <div className="flex justify-between text-[11px] text-gray-600 dark:text-gray-500 mt-1"><span>つらい</span><span>良い</span></div>
+
+          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+            <label htmlFor="condition-note" className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">その日のメモ（任意）</label>
+            <textarea
+              id="condition-note"
+              value={noteDraft}
+              onChange={e => setNoteDraft(e.target.value)}
+              placeholder="服薬のこと以外でも、気になったことを"
+              rows={2}
+              maxLength={200}
+              disabled={!condition || noteSaving}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400"
+            />
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-gray-600 dark:text-gray-500">
+                {condition ? `${noteDraft.length}/200` : '先に上の1〜5を選ぶと書けます'}
+              </p>
+              {condition && noteDraft.trim() !== (condition.note ?? '') && (
+                <button
+                  type="button"
+                  onClick={() => void saveConditionNote()}
+                  disabled={noteSaving}
+                  className="min-h-11 px-4 rounded-xl bg-indigo-500 text-white text-sm font-medium disabled:opacity-60"
+                >
+                  {noteSaving ? '保存しています...' : 'メモを保存'}
+                </button>
+              )}
+            </div>
+          </div>
         </section>
         {/* 記録を支えるメッセージ */}
         {insights?.message && (
