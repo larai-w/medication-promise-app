@@ -53,3 +53,29 @@ test('privacy copy states optional metric scope and retention', async () => {
   assert.match(terms, /アプリの画面から元に戻すことはできません/)
   assert.match(terms, /ログイン用認証アカウントは削除対象外/)
 })
+
+// 2026-09-01: その日のメモを画面に出した。
+// /api/condition の PUT は item ごと置き換えるので、体調だけを送ると
+// **既に書いてあるメモが黙って消える。** UI が無かったあいだは表に出て
+// いなかったが、メモを書けるようにした時点で実害になる。
+test('saving the daily condition never wipes an existing note', async () => {
+  const main = await read('src/components/MainScreen.tsx')
+
+  const conditionPuts = [...main.matchAll(/fetch\('\/api\/condition',[\s\S]*?\)\s*\n/g)].map(m => m[0])
+  assert.ok(conditionPuts.length >= 2, '体調とメモ、2つの保存経路が見つからない')
+  for (const call of conditionPuts) {
+    assert.match(call, /note:/, `note を送らない PUT がある: ${call.slice(0, 120)}`)
+  }
+})
+
+test('the daily note is offered outside the medication entries', async () => {
+  const main = await read('src/components/MainScreen.tsx')
+
+  // 服薬記録に紐づくメモ（AddEditModal）とは別に、その日についてのメモを持つ。
+  assert.match(main, /その日のメモ（任意）/)
+  assert.match(main, /id="condition-note"/)
+  assert.match(main, /maxLength=\{200\}/)
+  // 体調が未記録のときに勝手なスコアを作らない。
+  assert.match(main, /先に上の1〜5を選ぶと書けます/)
+  assert.doesNotMatch(main, /score:\s*3\b/, '体調を既定値で埋めていないか')
+})
