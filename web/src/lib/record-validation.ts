@@ -86,6 +86,11 @@ function parseTiming(value: unknown) {
   return value as '朝' | '昼' | '晩' | '夜8時' | '夜9時'
 }
 
+function parseReviewStatus(value: unknown) {
+  if (value !== 'reviewed') throw new InputValidationError('確認状態が正しくありません')
+  return value as 'reviewed'
+}
+
 export function parseCreateRecordInput(value: unknown) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new InputValidationError('入力内容が正しくありません')
@@ -111,12 +116,14 @@ export function parseUpdateRecordInput(value: unknown) {
     timing?: '朝' | '昼' | '晩' | '夜8時' | '夜9時'
     medicationRef?: string
     notes?: string
+    reviewStatus?: 'reviewed'
   } = {}
 
   if (body.time !== undefined) result.time = parseTime(body.time)
   if (body.timing !== undefined) result.timing = parseTiming(body.timing)
   if (body.medicationRef !== undefined) result.medicationRef = parseMedicationRef(body.medicationRef)
   if (body.notes !== undefined) result.notes = parseNotes(body.notes) ?? ''
+  if (body.reviewStatus !== undefined) result.reviewStatus = parseReviewStatus(body.reviewStatus)
   if (Object.keys(result).length === 0) throw new InputValidationError('更新内容がありません')
   return result
 }

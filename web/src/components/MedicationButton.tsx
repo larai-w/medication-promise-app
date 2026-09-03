@@ -10,9 +10,10 @@ interface Props {
   onQuickRecord: () => void
   onEdit: (record: MedicationRecord) => void
   onDelete: (id: string) => void
+  onReview: (record: MedicationRecord) => void
 }
 
-export default function MedicationButton({ timing, record, onQuickRecord, onEdit, onDelete }: Props) {
+export default function MedicationButton({ timing, record, onQuickRecord, onEdit, onDelete, onReview }: Props) {
   const [showActions, setShowActions] = useState(false)
   const [justRecorded, setJustRecorded] = useState(false)
 
@@ -45,6 +46,18 @@ export default function MedicationButton({ timing, record, onQuickRecord, onEdit
         </button>
         {showActions && (
           <div className="border-t border-green-200 dark:border-green-700 flex" role="toolbar" aria-label={`${timing} の操作`}>
+            {record.source === 'alexa' && record.reviewStatus !== 'reviewed' && (
+              <>
+                <button
+                  onClick={() => { onReview(record); setShowActions(false) }}
+                  className="flex-1 py-3 text-sm text-amber-700 dark:text-amber-300 font-medium hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors"
+                  aria-label={`${timing} の音声入力記録を確認済みにする`}
+                >
+                  確認済み
+                </button>
+                <div className="w-px bg-green-200 dark:bg-green-700" />
+              </>
+            )}
             <button
               onClick={() => { onEdit(record); setShowActions(false) }}
               className="flex-1 py-3 text-sm text-indigo-600 dark:text-indigo-400 font-medium hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"

@@ -7,6 +7,7 @@ export interface MedicationRecord {
   time: string       // HH:MM
   timing: Timing
   source: 'alexa' | 'manual'
+  reviewStatus?: 'unreviewed' | 'reviewed'
   medicationRef?: string // opaque reference for governed downstream research export
   notes?: string
   createdAt: string  // ISO8601
@@ -37,6 +38,7 @@ export interface DynamoRecord {
   time: string
   timing: Timing
   source: 'alexa' | 'manual'
+  reviewStatus?: 'unreviewed' | 'reviewed'
   medicationRef?: string
   notes?: string
   createdAt: string

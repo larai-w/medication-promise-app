@@ -46,7 +46,9 @@ test('create input accepts only known timings, valid time, and short notes', () 
 
 test('update input requires at least one valid field', () => {
   assert.deepEqual(parseUpdateRecordInput({ notes: '' }), { notes: '' })
+  assert.deepEqual(parseUpdateRecordInput({ reviewStatus: 'reviewed' }), { reviewStatus: 'reviewed' })
   assert.throws(() => parseUpdateRecordInput({}), /更新内容がありません/)
+  assert.throws(() => parseUpdateRecordInput({ reviewStatus: 'unreviewed' }), /確認状態/)
 })
 
 test('daily condition accepts only an integer score from 1 to 5', () => {

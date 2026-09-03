@@ -33,6 +33,7 @@ function toApiRecord(item: DynamoRecord): MedicationRecord {
     time: item.time,
     timing: item.timing,
     source: item.source,
+    reviewStatus: item.reviewStatus,
     medicationRef: item.medicationRef,
     notes: item.notes,
     createdAt: item.createdAt,
@@ -176,7 +177,7 @@ export async function createRecordForHousehold(
 export async function updateRecordForHousehold(
   household: AuthenticatedHousehold,
   encodedId: string,
-  input: { time?: string; timing?: MedicationRecord['timing']; medicationRef?: string; notes?: string },
+  input: { time?: string; timing?: MedicationRecord['timing']; medicationRef?: string; notes?: string; reviewStatus?: 'reviewed' },
   client: MutationClient = docClient
 ) {
   const sk = decodeSK(encodedId)
@@ -189,6 +190,7 @@ export async function updateRecordForHousehold(
   if (input.timing !== undefined) { updateParts.push('timing = :timing'); values[':timing'] = input.timing }
   if (input.medicationRef !== undefined) { updateParts.push('medicationRef = :medicationRef'); values[':medicationRef'] = input.medicationRef }
   if (input.notes !== undefined) { updateParts.push('notes = :notes'); values[':notes'] = input.notes }
+  if (input.reviewStatus !== undefined) { updateParts.push('reviewStatus = :reviewStatus'); values[':reviewStatus'] = input.reviewStatus }
 
   if (household.partitionMode === 'household') {
     await client.send(new TransactWriteCommand({
