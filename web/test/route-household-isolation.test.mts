@@ -66,10 +66,12 @@ test('record list and create handlers ignore client household parameters', async
 
 test('record update and delete handlers use only the resolved household partition', async () => {
   const seen: string[] = []
+  let updateInput: unknown
   const handlers = makeRecordItemHandlers({
     resolveHousehold: async () => householdA,
-    updateRecord: async (household) => {
+    updateRecord: async (household, _id, input) => {
       seen.push(`update:${household.partitionKey}`)
+      updateInput = input
       return record
     },
     deleteRecord: async (household) => {
@@ -85,14 +87,21 @@ test('record update and delete handlers use only the resolved household partitio
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ notes: 'SYNTHETIC_NOTE' }),
   }), params)
+  await handlers.PUT(new Request('https://example.test/api/records/id', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reviewStatus: 'reviewed' }),
+  }), params)
   await handlers.DELETE(new Request('https://example.test/api/records/id', {
     method: 'DELETE',
   }), params)
 
   assert.deepEqual(seen, [
     'update:HOUSEHOLD#household-a',
+    'update:HOUSEHOLD#household-a',
     'delete:HOUSEHOLD#household-a',
   ])
+  assert.deepEqual(updateInput, { reviewStatus: 'reviewed' })
 })
 
 test('PDF and settings handlers receive only the resolved household', async () => {

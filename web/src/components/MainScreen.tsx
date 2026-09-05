@@ -17,6 +17,7 @@ import RecentList from './RecentList'
 import WeeklyReport from './WeeklyReport'
 import type { Badge } from '@/lib/badges'
 import { medpromiseTracker } from '@/lib/metrics/record-time-tracker'
+import { analyzeRecordIntegrity } from '@/lib/record-integrity'
 
 interface ModalState {
   mode: 'add' | 'edit'
@@ -60,6 +61,7 @@ export default function MainScreen() {
   const [modalState, setModalState] = useState<ModalState | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [confirmation, setConfirmation] = useState<{ date: string; message: string } | null>(null)
   const [settings, setSettings] = useState<MedicationSettings>(DEFAULT_MEDICATION_SETTINGS)
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
     if (typeof window === 'undefined') return 'system'
@@ -177,6 +179,7 @@ export default function MainScreen() {
     {} as Record<Timing, MedicationRecord | undefined>
   )
   const timingDefaults = settingsToTimingDefaults(settings)
+  const recordIntegrity = analyzeRecordIntegrity(todayRecords, selectedDate)
 
   const completedCount = todayRecords.length
   const totalCount = TIMINGS.length
@@ -205,6 +208,7 @@ export default function MainScreen() {
       if (!res.ok) throw new Error()
       void medpromiseTracker.stop()
       await Promise.all([fetchToday(), fetchInsights()])
+      setConfirmation({ date: selectedDate, message: `${selectedDateLabel}の${timing}の服薬記録を保存しました。` })
     } catch {
       medpromiseTracker.cancel()
       setError('記録の保存に失敗しました。もう一度お試しください。')
@@ -246,6 +250,21 @@ export default function MainScreen() {
     setDeleteTargetId(id)
   }
 
+  const handleReview = async (record: MedicationRecord) => {
+    try {
+      const res = await fetch(`/api/records/${record.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reviewStatus: 'reviewed' }),
+      })
+      if (!res.ok) throw new Error()
+      await fetchAll()
+      setConfirmation({ date: selectedDate, message: `${selectedDateLabel}の${record.timing}の記録を確認済みにしました。` })
+    } catch {
+      setError('確認状態の更新に失敗しました。もう一度お試しください。')
+    }
+  }
+
   const confirmDelete = async () => {
     if (!deleteTargetId) return
     setDeleteTargetId(null)
@@ -279,6 +298,7 @@ export default function MainScreen() {
       void medpromiseTracker.stop()
       setModalState(null)
       await fetchAll()
+      setConfirmation({ date: selectedDate, message: `${selectedDateLabel}の${data.timing}の服薬記録を${editId ? '更新' : '保存'}しました。` })
     } catch {
       medpromiseTracker.cancel()
       setError('保存に失敗しました。もう一度お試しください。')
@@ -397,6 +417,22 @@ export default function MainScreen() {
           </div>
         )}
 
+        {recordIntegrity.hasIssues && (
+          <section
+            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200"
+            role="status"
+            aria-labelledby="record-integrity-heading"
+          >
+            <h2 id="record-integrity-heading" className="text-sm font-semibold">記録の確認が必要です</h2>
+            <p className="mt-1 text-xs">服薬したかどうかを自動判定せず、記録の状態だけを確認しています。</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
+              {recordIntegrity.issues.map(issue => (
+                <li key={`${issue.kind}-${issue.recordIds.join('-')}`}>{issue.reason}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* Streak + Progress section */}
         <section className="flex items-center gap-4">
           {streak > 0 && (
@@ -467,6 +503,16 @@ export default function MainScreen() {
 
         <section>
           <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-4">{selectedDateLabel}</p>
+          {confirmation?.date === selectedDate && (
+            <div
+              className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-700 dark:bg-green-900/30 dark:text-green-300"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {confirmation.message}
+            </div>
+          )}
           <div className="space-y-3">
             {TIMINGS.map(timing => (
               <MedicationButton
@@ -476,6 +522,7 @@ export default function MainScreen() {
                 onQuickRecord={() => handleQuickRecord(timing)}
                 onEdit={record => setModalState({ mode: 'edit', record })}
                 onDelete={handleDelete}
+                onReview={handleReview}
               />
             ))}
           </div>
