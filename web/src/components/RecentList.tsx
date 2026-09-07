@@ -36,14 +36,19 @@ export default function RecentList({ records }: Props) {
           </div>
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {byDate[date].map(record => (
-              <div key={record.id} className="px-4 py-3 flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{record.timing}</span>
-                <div className="flex items-center gap-3">
-                  {record.notes && (
-                    <span className="text-xs text-gray-600 dark:text-gray-500 truncate max-w-24">{record.notes}</span>
-                  )}
-                  <span className="text-sm text-gray-500 dark:text-gray-400">{record.time}</span>
+              <div key={record.id} className="px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{record.timing}</span>
+                  <span className="shrink-0 text-sm text-gray-500 dark:text-gray-400">{record.time}</span>
                 </div>
+                {record.notes?.trim() && (
+                  <details className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    <summary className="min-h-11 content-center cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
+                      メモを見る
+                    </summary>
+                    <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{record.notes}</p>
+                  </details>
+                )}
               </div>
             ))}
           </div>
