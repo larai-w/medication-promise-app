@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { TIMINGS, TIMING_DEFAULTS, type Timing } from '@/lib/constants'
 import type { MedicationRecord } from '@/types'
 
@@ -16,7 +16,7 @@ interface Props {
   record?: MedicationRecord
   defaultTiming?: Timing
   today: string
-  onSave: (data: SaveData, editId?: string) => void
+  onSave: (data: SaveData, editId?: string) => Promise<void>
   onClose: () => void
 }
 
@@ -26,6 +26,24 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
   const [timing, setTiming] = useState<Timing>(initialTiming)
   const [time, setTime] = useState(record?.time ?? TIMING_DEFAULTS[initialTiming])
   const [notes, setNotes] = useState(record?.notes ?? '')
+  const savingRef = useRef(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  const handleSave = async () => {
+    if (savingRef.current) return
+    savingRef.current = true
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await onSave({ date, time, timing, notes: notes || undefined }, record?.id)
+    } catch (cause) {
+      setSaveError(cause instanceof Error ? cause.message : '保存に失敗しました。入力を残しています。もう一度お試しください。')
+    } finally {
+      savingRef.current = false
+      setSaving(false)
+    }
+  }
 
   const handleTimingChange = (nextTiming: Timing) => {
     setTiming(nextTiming)
@@ -35,7 +53,7 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-label={mode === 'add' ? '服薬記録を追加' : '服薬記録を編集'}>
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-busy={saving} aria-label={mode === 'add' ? '服薬記録を追加' : '服薬記録を編集'}>
       <div className="bg-white dark:bg-gray-800 w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl p-6 space-y-5 shadow-xl">
         <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">
           {mode === 'add' ? '服薬記録を追加' : '服薬記録を編集'}
@@ -46,7 +64,7 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
           <input
             id="record-date"
             type="date"
-            disabled={mode === 'edit'}
+            disabled={saving || mode === 'edit'}
             aria-describedby={mode === 'edit' ? 'record-date-help' : undefined}
             value={date}
             onChange={e => setDate(e.target.value)}
@@ -62,6 +80,7 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
             {TIMINGS.map(t => (
               <button
                 key={t}
+                disabled={saving}
                 onClick={() => handleTimingChange(t)}
                 aria-pressed={timing === t}
                 className={`min-h-11 py-2.5 rounded-lg text-sm font-medium border-2 transition-colors ${
@@ -80,6 +99,7 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
           <label htmlFor="record-time" className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">時刻</label>
           <input
             id="record-time"
+            disabled={saving}
             type="time"
             value={time}
             onChange={e => setTime(e.target.value)}
@@ -92,6 +112,7 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
           <label htmlFor="record-note" className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">この服薬記録のメモ（任意）</label>
           <textarea
             id="record-note"
+            disabled={saving}
             value={notes}
             onChange={e => setNotes(e.target.value)}
             placeholder="気になることがあれば..."
@@ -102,18 +123,22 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
           <p className="text-xs text-gray-600 dark:text-gray-500 mt-1 text-right">{notes.length}/200</p>
         </div>
 
+        {saveError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{saveError}</p>}
+
         <div className="flex gap-3 pt-1">
           <button
-            onClick={onClose}
-            className="flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            disabled={saving}
+            onClick={() => { if (!savingRef.current) onClose() }}
+            className="disabled:opacity-60 flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             キャンセル
           </button>
           <button
-            onClick={() => onSave({ date, time, timing, notes: notes || undefined }, record?.id)}
-            className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors"
+            disabled={saving}
+            onClick={() => void handleSave()}
+            className="disabled:opacity-60 flex-1 py-3 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors"
           >
-            保存
+            {saving ? '保存中…' : '保存'}
           </button>
         </div>
       </div>
