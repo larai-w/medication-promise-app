@@ -139,3 +139,5 @@ grounding, retention, and user-consent decision.
 ## License
 
 MIT License
+
+The machine-readable [care-event export](docs/CARE_EVENT_EXPORT.md) uses v2: saved schedule snapshots are preserved, and unavailable historical scheduled times remain explicitly unknown instead of being filled with default reminder times.

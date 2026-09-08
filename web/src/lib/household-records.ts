@@ -9,6 +9,7 @@ import {
 import { randomUUID } from 'crypto'
 import { docClient, TABLE_NAME, decodeSK, encodeSK, makeSK } from './dynamodb.ts'
 import type { AuthenticatedHousehold } from './household.ts'
+import { captureScheduleSnapshot } from './schedule-snapshot.ts'
 import { activeMembershipCondition } from './membership-write-guard.ts'
 import type { DailyCondition, DynamoRecord, MedicationRecord } from '../types'
 
@@ -35,6 +36,7 @@ function toApiRecord(item: DynamoRecord): MedicationRecord {
     source: item.source,
     reviewStatus: item.reviewStatus,
     medicationRef: item.medicationRef,
+    ...(item.scheduleSnapshot ? { scheduleSnapshot: item.scheduleSnapshot } : {}),
     notes: item.notes,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
@@ -145,8 +147,16 @@ export async function createRecordForHousehold(
   input: { date: string; time: string; timing: MedicationRecord['timing']; medicationRef?: string; notes?: string },
   client: MutationClient = docClient
 ) {
+  // Validate the authenticated context before reading any household data.
+  if (household.partitionMode === 'household') activeMembershipCondition(household)
+  const settings = await client.send(new GetCommand({
+    TableName: TABLE_NAME,
+    Key: { PK: household.partitionKey, SK: 'SETTINGS#medication' },
+    ConsistentRead: true,
+  }))
   const sk = makeSK(input.date, input.time, randomUUID())
   const now = new Date().toISOString()
+  const scheduleSnapshot = captureScheduleSnapshot(settings.Item, input.date, input.time, input.timing, now)
 
   const item: DynamoRecord = {
     PK: household.partitionKey,
@@ -156,6 +166,7 @@ export async function createRecordForHousehold(
     time: input.time,
     timing: input.timing,
     source: 'manual',
+    ...(scheduleSnapshot ? { scheduleSnapshot } : {}),
     ...(input.medicationRef ? { medicationRef: input.medicationRef } : {}),
     notes: input.notes,
     createdAt: now,
@@ -199,7 +210,7 @@ export async function updateRecordForHousehold(
         { Update: {
           TableName: TABLE_NAME,
           Key: { PK: household.partitionKey, SK: sk },
-          UpdateExpression: `SET ${updateParts.join(', ')}`,
+          UpdateExpression: `SET ${updateParts.join(', ')}${input.time !== undefined || input.timing !== undefined ? ' REMOVE scheduleSnapshot' : ''}`,
           ExpressionAttributeValues: values,
           ConditionExpression: 'attribute_exists(PK) AND attribute_exists(SK)',
           ...(input.time !== undefined && { ExpressionAttributeNames: { '#t': 'time' } }),
@@ -219,7 +230,7 @@ export async function updateRecordForHousehold(
   const result = await client.send(new UpdateCommand({
     TableName: TABLE_NAME,
     Key: { PK: household.partitionKey, SK: sk },
-    UpdateExpression: `SET ${updateParts.join(', ')}`,
+    UpdateExpression: `SET ${updateParts.join(', ')}${input.time !== undefined || input.timing !== undefined ? ' REMOVE scheduleSnapshot' : ''}`,
     ExpressionAttributeValues: values,
     ConditionExpression: 'attribute_exists(PK) AND attribute_exists(SK)',
     ...(input.time !== undefined && { ExpressionAttributeNames: { '#t': 'time' } }),
