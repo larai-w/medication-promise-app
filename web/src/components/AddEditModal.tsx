@@ -36,20 +36,25 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-label={mode === 'add' ? '服薬記録を追加' : '服薬記録を編集'}>
-      <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-t-2xl sm:rounded-2xl p-6 space-y-5 shadow-xl">
+      <div className="bg-white dark:bg-gray-800 w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl p-6 space-y-5 shadow-xl">
         <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">
           {mode === 'add' ? '服薬記録を追加' : '服薬記録を編集'}
         </h2>
 
         <div>
-          <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">日付</label>
+          <label htmlFor="record-date" className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">日付</label>
           <input
+            id="record-date"
             type="date"
+            disabled={mode === 'edit'}
+            aria-describedby={mode === 'edit' ? 'record-date-help' : undefined}
             value={date}
             onChange={e => setDate(e.target.value)}
             className="min-h-11 w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
+
+        {mode === 'edit' && <p id="record-date-help" className="text-xs text-gray-600 dark:text-gray-400">日付は変更できません。別の日の記録は「手動で記録を追加」から追加できます。</p>}
 
         <div>
           <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">服薬区分</label>
@@ -58,6 +63,7 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
               <button
                 key={t}
                 onClick={() => handleTimingChange(t)}
+                aria-pressed={timing === t}
                 className={`min-h-11 py-2.5 rounded-lg text-sm font-medium border-2 transition-colors ${
                   timing === t
                     ? 'border-indigo-500 bg-indigo-500 text-white'
@@ -71,19 +77,21 @@ export default function AddEditModal({ mode, record, defaultTiming, today, onSav
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">時刻</label>
+          <label htmlFor="record-time" className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">時刻</label>
           <input
+            id="record-time"
             type="time"
             value={time}
             onChange={e => setTime(e.target.value)}
             className="min-h-11 w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
-          <p className="text-xs text-gray-600 dark:text-gray-500 mt-1">区分を選ぶと自動でセットされます</p>
+          <p className="text-xs text-gray-600 dark:text-gray-500 mt-1">{mode === 'add' ? '区分を選ぶと時刻が自動でセットされます' : '区分を変えても時刻は変わりません。必要に応じて変更してください'}</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">メモ（任意）</label>
+          <label htmlFor="record-note" className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">この服薬記録のメモ（任意）</label>
           <textarea
+            id="record-note"
             value={notes}
             onChange={e => setNotes(e.target.value)}
             placeholder="気になることがあれば..."

@@ -40,7 +40,7 @@ note of up to 200 characters. Use **メモを保存** to save it for the selecte
 the note is separate from the notes attached to individual medication records.
 The date controls let you review earlier days.
 
-In recent medication history, **メモを見る** expands an individual record's note
+In recent medication history, **服薬記録のメモを見る** expands an individual record's note
 without truncating its text or removing line breaks. These notes support personal
 recording and reflection; they do not assess symptoms or recommend medication changes.
 

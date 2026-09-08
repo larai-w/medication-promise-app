@@ -44,7 +44,7 @@ export default function RecentList({ records }: Props) {
                 {record.notes?.trim() && (
                   <details className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                     <summary className="min-h-11 content-center cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
-                      メモを見る
+                      服薬記録のメモを見る
                     </summary>
                     <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{record.notes}</p>
                   </details>
