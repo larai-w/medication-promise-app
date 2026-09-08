@@ -59,6 +59,9 @@ export default function MainScreen() {
   const [recentRecords, setRecentRecords] = useState<MedicationRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [modalState, setModalState] = useState<ModalState | null>(null)
+  const recordSavingRef = useRef(false)
+  const [recordSaving, setRecordSaving] = useState(false)
+  const [quickSaving, setQuickSaving] = useState<Timing | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmation, setConfirmation] = useState<{ date: string; message: string } | null>(null)
@@ -238,6 +241,12 @@ export default function MainScreen() {
   }
 
   const handleQuickRecord = async (timing: Timing) => {
+    if (recordSavingRef.current || modalState || recordsByTiming[timing]) return
+    recordSavingRef.current = true
+    setRecordSaving(true)
+    setQuickSaving(timing)
+    setError(null)
+    setConfirmation(null)
     medpromiseTracker.start()
     try {
       const res = await fetch('/api/records', {
@@ -248,11 +257,25 @@ export default function MainScreen() {
       if (res.status === 401) window.location.assign('/login')
       if (!res.ok) throw new Error()
       void medpromiseTracker.stop()
-      await Promise.all([fetchToday(), fetchInsights()])
       setConfirmation({ date: selectedDate, message: `${selectedDateLabel}の${timing}の服薬記録を保存しました。` })
+      // A failed refresh does not undo a successful write or require another POST.
+      try {
+        const saved = await res.json() as MedicationRecord
+        if (viewRef.current.date === saved.date) {
+          recordsRequest.current += 1
+          setTodayRecords(records => [...records.filter(record => record.id !== saved.id), saved])
+        }
+        await Promise.all([fetchToday(), fetchInsights()])
+      } catch {
+        setError('保存は完了しましたが、表示の更新に失敗しました。「更新」で確認してください。')
+      }
     } catch {
       medpromiseTracker.cancel()
       setError('記録の保存に失敗しました。もう一度お試しください。')
+    } finally {
+      recordSavingRef.current = false
+      setRecordSaving(false)
+      setQuickSaving(null)
     }
   }
 
@@ -354,30 +377,53 @@ export default function MainScreen() {
   }
 
   const handleSave = async (data: SaveData, editId?: string) => {
+    if (recordSavingRef.current) throw new Error('保存中です。完了してからもう一度お試しください。')
+    recordSavingRef.current = true
+    setRecordSaving(true)
+    setError(null)
+    setConfirmation(null)
+    const savingModal = modalState
     medpromiseTracker.start()
     try {
       let res: Response
-      if (editId) {
-        res = await fetch(`/api/records/${editId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ time: data.time, timing: data.timing, notes: data.notes }),
-        })
-      } else {
-        res = await fetch('/api/records', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...data, source: 'manual' }),
-        })
+      try {
+        if (editId) {
+          res = await fetch(`/api/records/${editId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ time: data.time, timing: data.timing, notes: data.notes }),
+          })
+        } else {
+          res = await fetch('/api/records', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...data, source: 'manual' }),
+          })
+        }
+        if (res.status === 401) window.location.assign('/login')
+        if (!res.ok) throw new Error()
+      } catch {
+        medpromiseTracker.cancel()
+        throw new Error('保存に失敗しました。入力を残しています。もう一度お試しください。')
       }
-      if (!res.ok) throw new Error()
       void medpromiseTracker.stop()
-      setModalState(null)
-      await fetchAll()
-      setConfirmation({ date: selectedDate, message: `${selectedDateLabel}の${data.timing}の服薬記録を${editId ? '更新' : '保存'}しました。` })
-    } catch {
-      medpromiseTracker.cancel()
-      setError('保存に失敗しました。もう一度お試しください。')
+      setModalState(current => current === savingModal ? null : current)
+      const savedDateLabel = format(parseISO(data.date), 'yyyy年M月d日 (eee)', { locale: ja })
+      setConfirmation({ date: data.date, message: `${savedDateLabel}の${data.timing}の服薬記録を${editId ? '更新' : '保存'}しました。` })
+      try {
+        const saved = await res.json() as MedicationRecord
+        if (viewRef.current.date === saved.date) {
+          recordsRequest.current += 1
+          setTodayRecords(records => [...records.filter(record => record.id !== saved.id), saved])
+        }
+        // fetchAll reports refresh failures without retrying the successful write.
+        await fetchAll()
+      } catch {
+        setError('保存は完了しましたが、表示の更新に失敗しました。「更新」で確認してください。')
+      }
+    } finally {
+      recordSavingRef.current = false
+      setRecordSaving(false)
     }
   }
 
@@ -599,15 +645,18 @@ export default function MainScreen() {
                 key={timing}
                 timing={timing}
                 record={recordsByTiming[timing]}
+                disabled={recordSaving || modalState !== null}
+                saving={quickSaving === timing}
                 onQuickRecord={() => handleQuickRecord(timing)}
-                onEdit={record => setModalState({ mode: 'edit', record })}
+                onEdit={record => { if (!recordSavingRef.current && !modalState) setModalState({ mode: 'edit', record }) }}
                 onDelete={handleDelete}
                 onReview={handleReview}
               />
             ))}
           </div>
           <button
-            onClick={() => setModalState({ mode: 'add' })}
+            disabled={recordSaving || modalState !== null}
+            onClick={() => { if (!recordSavingRef.current && !modalState) setModalState({ mode: 'add' }) }}
             className="mt-4 w-full py-3.5 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-gray-600 dark:text-gray-500 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors text-sm font-medium"
             aria-label="手動で記録を追加"
           >
@@ -639,7 +688,7 @@ export default function MainScreen() {
           defaultTiming={modalState.defaultTiming}
           today={selectedDate}
           onSave={handleSave}
-          onClose={() => setModalState(null)}
+          onClose={() => { if (!recordSavingRef.current) setModalState(null) }}
         />
       )}
 
