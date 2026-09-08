@@ -29,8 +29,10 @@ test('recordMedicationForHousehold writes into the household partition, not the 
   const client = fakeClient()
   const result = await recordMedicationForHousehold(HOUSEHOLD, '朝', { client })
 
-  assert.equal(client.sent.length, 1)
-  const [guard, mutation] = client.sent[0].TransactItems
+  assert.equal(client.sent.length, 2)
+  assert.equal(client.sent[0].Key.PK, HOUSEHOLD.partitionKey)
+  assert.equal(client.sent[0].ConsistentRead, true)
+  const [guard, mutation] = client.sent[1].TransactItems
   const { Item } = mutation.Put
   assert.equal(guard.ConditionCheck.Key.PK, 'USER#provider-user-a')
   assert.equal(guard.ConditionCheck.Key.SK, 'MEMBERSHIP#household-a')

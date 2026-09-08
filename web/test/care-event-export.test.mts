@@ -15,7 +15,7 @@ import type { DailyCondition } from '../src/types/index.ts'
 
 const fixtureUrl = new URL('./fixtures/care-event-export-records.synthetic.json', import.meta.url)
 const fixture = JSON.parse(await readFile(fixtureUrl, 'utf8')) as MedicationRecord[]
-const schemaUrl = new URL('../../docs/schemas/medication-promise-export-v1.schema.json', import.meta.url)
+const schemaUrl = new URL('../../docs/schemas/medication-promise-export-v2.schema.json', import.meta.url)
 const schema = JSON.parse(await readFile(schemaUrl, 'utf8'))
 
 const householdA = makeAuthenticatedHousehold({
@@ -26,14 +26,15 @@ const householdA = makeAuthenticatedHousehold({
 test('builds a deterministic personal-review care-event export from synthetic records', () => {
   const exported = buildMedicationPromiseExport(fixture, new Date('2035-01-16T00:00:00.000Z'))
 
-  assert.equal(exported.schemaVersion, 'medication-promise-export/v1')
+  assert.equal(exported.schemaVersion, 'medication-promise-export/v2')
   assert.equal(exported.recordCount, 2)
   assert.equal(exported.timezone, 'Asia/Tokyo')
   assert.equal(exported.purpose, 'personal_review')
   assert.deepEqual(exported.records.map((event) => event.missingness), ['observed', 'observed'])
   assert.deepEqual(exported.records.map((event) => event.correction.status), ['original', 'corrected'])
   assert.equal(exported.records[0].occurredAt, '2035-01-15T08:12:00+09:00')
-  assert.equal(exported.records[0].payload.scheduledTime, '08:00')
+  assert.equal(exported.records[0].payload.scheduledTime, null)
+  assert.equal(exported.records[0].payload.scheduledTimeStatus, 'unknown')
   assert.equal(exported.records[0].payload.notes, '合成データのメモ')
   assert.equal('actorRole' in exported.records[0], false)
   assert.match(exported.records[0].eventId, /^mp-[a-f0-9]{32}$/)
@@ -185,4 +186,49 @@ test('export handler validates and bounds the requested date range', async () =>
   assert.equal((await handler(new Request(
     'https://example.test/api/records/export?from=2035-01-01&to=2036-01-02'
   ))).status, 400)
+})
+
+test('exports the saved changed schedule without consulting later settings', () => {
+  const record: MedicationRecord = {
+    ...fixture[0],
+    scheduleSnapshot: {
+      timing: '朝', time: '08:15',
+      settingsUpdatedAt: '2035-01-14T00:00:00.000Z',
+      capturedAt: fixture[0].createdAt,
+    },
+  }
+  const first = buildMedicationPromiseExport([record], new Date('2035-01-16T00:00:00Z'))
+  const later = buildMedicationPromiseExport([record], new Date('2035-02-16T00:00:00Z'))
+  assert.equal(first.records[0].payload.scheduledTime, '08:15')
+  assert.equal(first.records[0].payload.scheduledTimeStatus, 'recorded_snapshot')
+  assert.deepEqual(first.records[0].payload, later.records[0].payload)
+  assert.equal(first.records[0].payload.actualTime, '08:12')
+  const ajv = new Ajv2020({ allErrors: true })
+  addFormats(ajv)
+  assert.equal(ajv.validate(schema, first), true, JSON.stringify(ajv.errors))
+})
+
+test('rejects damaged or mismatched saved schedules rather than inventing a time', () => {
+  const valid = { timing: '朝', time: '08:15', settingsUpdatedAt: '2035-01-14T00:00:00Z', capturedAt: fixture[0].createdAt }
+  for (const change of [
+    { timing: '昼' }, { time: '24:00' }, { time: '8:15' },
+    { settingsUpdatedAt: 'invalid' }, { capturedAt: 'invalid' },
+    { settingsUpdatedAt: '2035-01-16T00:00:00Z' },
+    { capturedAt: '2035-01-14T00:00:00Z' },
+  ]) {
+    assert.throws(() => buildMedicationPromiseExport([
+      { ...fixture[0], scheduleSnapshot: { ...valid, ...change } } as MedicationRecord,
+    ]), CareEventExportError)
+  }
+})
+
+test('v2 schema rejects a guessed time marked unknown or a snapshot without provenance', () => {
+  const ajv = new Ajv2020({ allErrors: true })
+  addFormats(ajv)
+  const validate = ajv.compile(schema)
+  const data = buildMedicationPromiseExport(fixture)
+  data.records[0].payload.scheduledTime = '08:00'
+  assert.equal(validate(data), false)
+  data.records[0].payload.scheduledTimeStatus = 'recorded_snapshot'
+  assert.equal(validate(data), false)
 })

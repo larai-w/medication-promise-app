@@ -76,7 +76,7 @@ test('record mutations stay within each household partition', async () => {
   await updateRecordForHousehold(householdA, encodeSK('RECORD#2026-07-19T08:00:00#abc'), { notes: 'done' }, updateClient)
   await deleteRecordForHousehold(householdB, encodeSK('RECORD#2026-07-19T08:00:00#abc'), deleteClient)
 
-  const createCall = createClient.calls[0] as { input: { TransactItems: Array<Record<string, unknown>> } }
+  const createCall = createClient.calls[1] as { input: { TransactItems: Array<Record<string, unknown>> } }
   const updateCall = updateClient.calls[0] as { input: { TransactItems: Array<Record<string, unknown>> } }
   const deleteCall = deleteClient.calls[0] as { input: { TransactItems: Array<Record<string, unknown>> } }
   const createCondition = createCall.input.TransactItems[0].ConditionCheck as {
@@ -160,7 +160,7 @@ test('legacy development mode keeps its non-membership write path', async () => 
     client
   )
 
-  const command = client.calls[0] as {
+  const command = client.calls[1] as {
     constructor: { name: string }
     input: { Item: { PK: string } }
   }

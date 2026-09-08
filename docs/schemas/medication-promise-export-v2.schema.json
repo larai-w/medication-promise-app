@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veai.jp/schemas/medication-promise-export/v2.json",
+  "title": "Medication Promise Export v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "exportedAt",
+    "timezone",
+    "purpose",
+    "recordCount",
+    "records",
+    "dailyConditions",
+    "limitations"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "medication-promise-export/v2"
+    },
+    "exportedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "timezone": {
+      "const": "Asia/Tokyo"
+    },
+    "purpose": {
+      "const": "personal_review"
+    },
+    "recordCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/medicationCareEvent"
+      }
+    },
+    "dailyConditions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/dailyCondition"
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "dailyCondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "date",
+        "score",
+        "observedAt",
+        "recordedAt"
+      ],
+      "properties": {
+        "date": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "score": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "recordedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 200
+        }
+      }
+    },
+    "medicationCareEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "eventId",
+        "eventType",
+        "source",
+        "patientId",
+        "careTeamId",
+        "occurredAt",
+        "recordedAt",
+        "localDate",
+        "payload",
+        "missingness",
+        "provenance",
+        "consentScope",
+        "exportVersion",
+        "correction"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "care-event/v1"
+        },
+        "eventId": {
+          "type": "string",
+          "pattern": "^mp-[a-f0-9]{32}$"
+        },
+        "eventType": {
+          "const": "medication_taken"
+        },
+        "source": {
+          "const": "medication-promise"
+        },
+        "patientId": {
+          "const": "self"
+        },
+        "careTeamId": {
+          "const": "household"
+        },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "recordedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "localDate": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "timing",
+            "scheduledTime",
+            "actualTime",
+            "inputSource",
+            "scheduledTimeStatus"
+          ],
+          "properties": {
+            "timing": {
+              "enum": [
+                "朝",
+                "昼",
+                "晩",
+                "夜8時",
+                "夜9時"
+              ]
+            },
+            "scheduledTime": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$"
+            },
+            "actualTime": {
+              "type": "string",
+              "pattern": "^[0-9]{2}:[0-9]{2}$"
+            },
+            "inputSource": {
+              "enum": [
+                "alexa",
+                "manual"
+              ]
+            },
+            "medicationRef": {
+              "type": "string",
+              "pattern": "^med-[A-Za-z0-9_-]{1,80}$"
+            },
+            "notes": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "scheduledTimeStatus": {
+              "enum": [
+                "recorded_snapshot",
+                "unknown"
+              ]
+            },
+            "scheduledTimeProvenance": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "settingsUpdatedAt",
+                "capturedAt"
+              ],
+              "properties": {
+                "settingsUpdatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "capturedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "oneOf": [
+            {
+              "properties": {
+                "scheduledTimeStatus": {
+                  "const": "recorded_snapshot"
+                },
+                "scheduledTime": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "scheduledTimeProvenance"
+              ]
+            },
+            {
+              "properties": {
+                "scheduledTimeStatus": {
+                  "const": "unknown"
+                },
+                "scheduledTime": {
+                  "type": "null"
+                }
+              },
+              "not": {
+                "required": [
+                  "scheduledTimeProvenance"
+                ]
+              }
+            }
+          ]
+        },
+        "missingness": {
+          "const": "observed"
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "sourceRecordId",
+            "recordedAt",
+            "exportedAt",
+            "transformVersion"
+          ],
+          "properties": {
+            "source": {
+              "const": "medication-promise"
+            },
+            "sourceRecordId": {
+              "type": "string",
+              "pattern": "^mp-[a-f0-9]{32}$"
+            },
+            "recordedAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "exportedAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "transformVersion": {
+              "const": "medication-promise-export/v2"
+            }
+          }
+        },
+        "consentScope": {
+          "const": "personal_review"
+        },
+        "exportVersion": {
+          "const": "medication-promise-export/v2"
+        },
+        "correction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "original",
+                "corrected"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

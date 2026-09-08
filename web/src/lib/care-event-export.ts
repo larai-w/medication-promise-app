@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto'
-import { TIMING_DEFAULTS, type Timing } from './constants.ts'
+import { TIMINGS, type Timing } from './constants.ts'
 import { isValidDate } from './record-validation.ts'
 import type { DailyCondition, MedicationRecord } from '../types/index.ts'
 
 export const CARE_EVENT_SCHEMA_VERSION = 'care-event/v1' as const
-export const MEDICATION_PROMISE_EXPORT_VERSION = 'medication-promise-export/v1' as const
+export const MEDICATION_PROMISE_EXPORT_VERSION = 'medication-promise-export/v2' as const
 export const MEDICATION_PROMISE_EXPORT_TIMEZONE = 'Asia/Tokyo' as const
 
 export interface MedicationCareEvent {
@@ -19,7 +19,9 @@ export interface MedicationCareEvent {
   localDate: string
   payload: {
     timing: Timing
-    scheduledTime: string
+    scheduledTime: string | null
+    scheduledTimeStatus: 'recorded_snapshot' | 'unknown'
+    scheduledTimeProvenance?: { settingsUpdatedAt: string; capturedAt: string }
     actualTime: string
     inputSource: MedicationRecord['source']
     medicationRef?: string
@@ -79,6 +81,27 @@ function toOccurredAt(record: MedicationRecord) {
   return occurredAt
 }
 
+function exportedSchedule(record: MedicationRecord): Pick<MedicationCareEvent['payload'],
+  'scheduledTime' | 'scheduledTimeStatus' | 'scheduledTimeProvenance'> {
+  const snapshot = record.scheduleSnapshot
+  if (snapshot === undefined) return { scheduledTime: null, scheduledTimeStatus: 'unknown' }
+  if (!snapshot || snapshot.timing !== record.timing ||
+      typeof snapshot.time !== 'string' || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(snapshot.time)) {
+    throw new CareEventExportError('record schedule snapshot is invalid')
+  }
+  const settingsUpdatedAt = normalizedIsoDateTime(snapshot.settingsUpdatedAt, 'schedule settingsUpdatedAt')
+  const capturedAt = normalizedIsoDateTime(snapshot.capturedAt, 'schedule capturedAt')
+  const occurred = Date.parse(toOccurredAt(record))
+  if (Date.parse(settingsUpdatedAt) > occurred || occurred > Date.parse(capturedAt)) {
+    throw new CareEventExportError('record schedule snapshot chronology is invalid')
+  }
+  return {
+    scheduledTime: snapshot.time,
+    scheduledTimeStatus: 'recorded_snapshot',
+    scheduledTimeProvenance: { settingsUpdatedAt, capturedAt },
+  }
+}
+
 export function toMedicationCareEvent(
   record: MedicationRecord,
   exportedAt: string
@@ -86,8 +109,8 @@ export function toMedicationCareEvent(
   const sourceRecordId = stableRecordId(record.id)
   const recordedAt = normalizedIsoDateTime(record.createdAt, 'createdAt')
   if (record.updatedAt) normalizedIsoDateTime(record.updatedAt, 'updatedAt')
-  const scheduledTime = TIMING_DEFAULTS[record.timing]
-  if (!scheduledTime) throw new CareEventExportError('record timing is invalid')
+  if (!TIMINGS.includes(record.timing)) throw new CareEventExportError('record timing is invalid')
+  const schedule = exportedSchedule(record)
   if (record.source !== 'manual' && record.source !== 'alexa') {
     throw new CareEventExportError('record source is invalid')
   }
@@ -107,7 +130,7 @@ export function toMedicationCareEvent(
     localDate: record.date,
     payload: {
       timing: record.timing,
-      scheduledTime,
+      ...schedule,
       actualTime: record.time,
       inputSource: record.source,
       ...(record.medicationRef ? { medicationRef: record.medicationRef } : {}),
@@ -150,6 +173,8 @@ export function buildMedicationPromiseExport(
     limitations: [
       '記録は実際の服薬を医学的に証明するものではありません。',
       '記録がない時間帯を未服薬として補完していません。',
+      '予定時刻は保存された設定の写しがある場合だけ出力します。不明な予定を既定値や現在の設定で補完していません。',
+      '保存された予定は通知の配信や処方内容を証明せず、予定の全変更履歴でもありません。',
     ],
   }
 }

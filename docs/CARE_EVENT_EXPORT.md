@@ -14,14 +14,15 @@ Both dates are required and the inclusive range is limited to 366 days. The exis
 Web authentication mode determines the household. Query parameters cannot select or
 override a household.
 
-The response is an attachment using `medication-promise-export/v1`. Each item follows
+The response is an attachment using `medication-promise-export/v2`. Each item follows
 the `care-event/v1` medication-event subset documented by
-[`schemas/medication-promise-export-v1.schema.json`](schemas/medication-promise-export-v1.schema.json).
+[`schemas/medication-promise-export-v2.schema.json`](schemas/medication-promise-export-v2.schema.json).
 The canonical `care-event/v1` schema is maintained in the public
 [`GutPacer-ParkinSync-Module`](https://github.com/larai-w/GutPacer-ParkinSync-Module/blob/main/schema/care-event-v1.schema.json)
 repository. This repository intentionally encodes a stricter medication-only specialization rather
-than copying the full schema. CI checks that the specialization retains every canonical required
-field, preserves closed nested objects and formats, and only narrows canonical enums and constants.
+than copying the full schema. The schema-specialization checker verifies canonical required fields, closed nested objects,
+formats, and narrowed enums/constants. The existing CI invocation checks the retained v1
+schema; v2 has dedicated export-schema tests and can be checked with the same script.
 
 ## Data boundary
 
@@ -57,6 +58,34 @@ score was saved). These timestamps are intentionally distinct so a downstream
 normalizer does not substitute the export time for the original record time. Older
 stored condition items without `recordedAt` are returned with the legacy
 `observedAt` value as a compatibility fallback.
+
+## Scheduled time in v2
+
+`payload.scheduledTime` is the saved scheduled time, or `null` when unknown.
+`scheduledTimeStatus` is `recorded_snapshot` or `unknown`. A recorded snapshot also
+includes `scheduledTimeProvenance.settingsUpdatedAt` and `capturedAt`.
+
+New Web and Alexa records capture the versioned settings read in their own partition.
+A snapshot is retained only when that settings version predates the recorded occurrence
+and the occurrence is not in the future. Missing, unversioned, or inapplicable settings
+leave the schedule unknown. Settings read errors remain errors; they are not treated
+as default schedules. This is a snapshot of the configuration observed at capture,
+not a complete schedule history or proof that a reminder was delivered.
+
+Exports never consult current settings and never substitute the built-in reminder times.
+Legacy records without a snapshot remain unknown, including records created before this
+change. Backdated records before the current settings version also remain unknown.
+Editing a record's time or timing clears the snapshot; notes-only and review-only edits
+preserve it. Settings changes do not rewrite existing records. No historical backfill
+or database migration is performed.
+
+Consumers must branch on `schemaVersion`, accept null schedules in v2, and exclude
+unknown schedules from lateness calculations. A known schedule does not establish a
+prescription or justify an adherence conclusion. Event `missingness: observed` still
+refers to the medication record, not the availability of its scheduled time.
+The retained [v1 schema](schemas/medication-promise-export-v1.schema.json) describes old
+exports whose scheduled time was a built-in default. Those values must not be relabeled
+as recorded snapshots. The endpoint now emits v2; it does not offer a v1 fallback.
 
 ## Corrections and deletion
 

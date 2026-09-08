@@ -1,5 +1,12 @@
 import type { Timing } from '@/lib/constants'
 
+export interface ScheduleSnapshot {
+  timing: Timing
+  time: string
+  settingsUpdatedAt: string
+  capturedAt: string
+}
+
 export interface MedicationRecord {
   id: string         // base64url(SK) — for API use
   userId: string
@@ -8,6 +15,7 @@ export interface MedicationRecord {
   timing: Timing
   source: 'alexa' | 'manual'
   reviewStatus?: 'unreviewed' | 'reviewed'
+  scheduleSnapshot?: ScheduleSnapshot
   medicationRef?: string // opaque reference for governed downstream research export
   notes?: string
   createdAt: string  // ISO8601
@@ -40,6 +48,7 @@ export interface DynamoRecord {
   source: 'alexa' | 'manual'
   reviewStatus?: 'unreviewed' | 'reviewed'
   medicationRef?: string
+  scheduleSnapshot?: ScheduleSnapshot
   notes?: string
   createdAt: string
   updatedAt?: string

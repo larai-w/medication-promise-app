@@ -18,6 +18,7 @@ import WeeklyReport from './WeeklyReport'
 import type { Badge } from '@/lib/badges'
 import { medpromiseTracker } from '@/lib/metrics/record-time-tracker'
 import { analyzeRecordIntegrity } from '@/lib/record-integrity'
+import { buildRecordEdit } from '@/lib/record-edit'
 
 interface ModalState {
   mode: 'add' | 'edit'
@@ -388,10 +389,11 @@ export default function MainScreen() {
       let res: Response
       try {
         if (editId) {
+          if (savingModal?.record?.id !== editId) throw new Error('編集元の記録を確認できません')
           res = await fetch(`/api/records/${editId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ time: data.time, timing: data.timing, notes: data.notes }),
+            body: JSON.stringify(buildRecordEdit(savingModal.record, data)),
           })
         } else {
           res = await fetch('/api/records', {

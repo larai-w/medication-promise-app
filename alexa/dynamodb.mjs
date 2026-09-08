@@ -15,6 +15,35 @@ const docClient = DynamoDBDocumentClient.from(client, {
 
 const SETTINGS_SK = 'SETTINGS#medication'
 
+const SNAPSHOT_TIMINGS = ['朝', '昼', '晩', '夜8時', '夜9時']
+const CLOCK = /^(?:[01]\d|2[0-3]):[0-5]\d$/
+
+// Use only a version actually observed in storage, never normalized defaults.
+export function captureScheduleSnapshot(settings, date, time, timing, capturedAt) {
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return undefined
+  const body = settings
+  const version = body.updatedAt
+  if (typeof version !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(version)) return undefined
+  const versionMs = Date.parse(version)
+  if (!Number.isFinite(versionMs) || new Date(versionMs).toISOString() !== version) return undefined
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !CLOCK.test(time)) return undefined
+  const occurredMs = Date.parse(`${date}T${time}:00+09:00`)
+  if (!Number.isFinite(occurredMs) || new Date(occurredMs + 9 * 3600000).toISOString().slice(0, 10) !== date) return undefined
+  const capturedMs = Date.parse(capturedAt)
+  if (!Number.isFinite(capturedMs) || versionMs > occurredMs || occurredMs > capturedMs) return undefined
+  const schedule = body.reminderSchedule
+  if (!Array.isArray(schedule) || schedule.length !== SNAPSHOT_TIMINGS.length) return undefined
+  const seen = new Set()
+  for (const slot of schedule) {
+    if (!slot || typeof slot !== 'object' || !SNAPSHOT_TIMINGS.includes(slot.timing)
+      || seen.has(slot.timing) || typeof slot.time !== 'string' || !CLOCK.test(slot.time)) return undefined
+    seen.add(slot.timing)
+  }
+  const slot = schedule.find((entry) => entry.timing === timing)
+  return slot ? { timing, time: slot.time, settingsUpdatedAt: version, capturedAt } : undefined
+}
+
+
 // Lambda は UTC で動くので JST (+9h) に変換する。
 // minutesAgo を渡すと、その分だけ遡った時刻を返す（「30分前に飲んだ」用）。
 // 日をまたぐ場合は date も前日になる。
@@ -27,17 +56,22 @@ function nowJST(minutesAgo = 0) {
   }
 }
 
-export async function recordMedication(timing, { minutesAgo = null } = {}) {
+export async function recordMedication(timing, { client = docClient, minutesAgo = null } = {}) {
   // date/time は「飲んだ時刻」、createdAt は「記録した時刻」。別物として保存する。
   // care-event export は date/time を actualTime / occurredAt に使うため、
   // ここに記録時刻を入れてしまうと事実と違う値が研究データへ流れる。
   const { date, time } = nowJST(minutesAgo ?? 0)
-  const { iso } = nowJST()
+
   const uuid = randomUUID()
   const pk   = `USER#${USER_ID}`
   const sk   = `RECORD#${date}T${time}:00#${uuid}`
 
-  await docClient.send(new PutCommand({
+  const settings = await client.send(new GetCommand({
+    TableName: TABLE_NAME, Key: { PK: pk, SK: SETTINGS_SK }, ConsistentRead: true,
+  }))
+  const iso = new Date().toISOString()
+  const scheduleSnapshot = captureScheduleSnapshot(settings.Item, date, time, timing, iso)
+  await client.send(new PutCommand({
     TableName: TABLE_NAME,
     Item: {
       PK:        pk,
@@ -47,6 +81,7 @@ export async function recordMedication(timing, { minutesAgo = null } = {}) {
       time,
       timing,
       source:    'alexa',
+      ...(scheduleSnapshot ? { scheduleSnapshot } : {}),
       createdAt: iso,
       // 時刻を本人が言ったのか、記録時刻で代用したのかを残す
       timeSource: minutesAgo === null ? 'recorded' : 'stated',
@@ -122,10 +157,15 @@ function activeMembershipCondition(household) {
 export async function recordMedicationForHousehold(household, timing, { client = docClient, minutesAgo = null } = {}) {
   assertHousehold(household)
   const { date, time } = nowJST(minutesAgo ?? 0)
-  const { iso } = nowJST()
+
   const uuid = randomUUID()
   const sk   = `RECORD#${date}T${time}:00#${uuid}`
 
+  const settings = await client.send(new GetCommand({
+    TableName: TABLE_NAME, Key: { PK: household.partitionKey, SK: SETTINGS_SK }, ConsistentRead: true,
+  }))
+  const iso = new Date().toISOString()
+  const scheduleSnapshot = captureScheduleSnapshot(settings.Item, date, time, timing, iso)
   await client.send(new TransactWriteCommand({
     TransactItems: [
       { ConditionCheck: activeMembershipCondition(household) },
@@ -139,6 +179,7 @@ export async function recordMedicationForHousehold(household, timing, { client =
           time,
           timing,
           source:    'alexa',
+          ...(scheduleSnapshot ? { scheduleSnapshot } : {}),
           createdAt: iso,
           timeSource: minutesAgo === null ? 'recorded' : 'stated',
         },
