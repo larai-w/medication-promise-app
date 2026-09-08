@@ -441,7 +441,7 @@ export default function MainScreen() {
             <div><h2 id="condition-heading" className="font-semibold text-gray-800 dark:text-gray-100">{viewingToday ? '今日' : selectedDateLabel}の体調</h2><p className="text-xs text-gray-500 dark:text-gray-400">夜に一度、1〜5で振り返ります</p></div>
             {condition && <span className="text-sm text-gray-500 dark:text-gray-400">記録済み: {condition.score}</span>}
           </div>
-          <div className="grid grid-cols-5 gap-2" role="group" aria-label="今日の体調を1から5で選択">
+          <div className="grid grid-cols-5 gap-2" role="group" aria-label={`${viewingToday ? '今日' : selectedDateLabel}の体調を1から5で選択`}>
             {([1, 2, 3, 4, 5] as const).map(score => {
               const selected = condition?.score === score
               return <button key={score} type="button" disabled={savingCondition || !conditionReady} onClick={() => void saveCondition(score)} aria-pressed={selected} aria-label={`体調 ${score}: ${['とてもつらい', 'つらい', 'ふつう', '良い', 'とても良い'][score - 1]}`} className={`min-h-11 rounded-xl border-2 text-lg font-semibold transition-colors disabled:opacity-60 ${selected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-indigo-300'}`}>{score}</button>

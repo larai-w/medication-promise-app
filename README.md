@@ -20,6 +20,7 @@ This project demonstrates end-to-end Technical PM capability in a HealthTech con
 | Capability | Status |
 | --- | --- |
 | Web recording, correction, history, and monthly PDF | Working household MVP |
+| Daily condition score and optional note; expandable medication-record notes | Deployed household MVP |
 | Alexa voice recording and daily reminders | Working household MVP |
 | Protected medication name and reminder settings | Deployed household MVP |
 | Household-scoped Web data boundary | Deployed; Cognito + membership flow verified in production with synthetic data |
@@ -31,6 +32,17 @@ This project demonstrates end-to-end Technical PM capability in a HealthTech con
 
 Production app: [kusuri.veai.jp](https://kusuri.veai.jp) (private access required)
 Product page: [VEAI LAB - Medication Promise](https://veai.jp/apps/medication-promise/)
+
+## Daily Notes and History
+
+In the Web app, choose a daily condition score from 1 to 5 before writing an optional
+note of up to 200 characters. Use **メモを保存** to save it for the selected date;
+the note is separate from the notes attached to individual medication records.
+The date controls let you review earlier days.
+
+In recent medication history, **服薬記録のメモを見る** expands an individual record's note
+without truncating its text or removing line breaks. These notes support personal
+recording and reflection; they do not assess symptoms or recommend medication changes.
 
 ## Product Management Evidence
 
