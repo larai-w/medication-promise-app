@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { format, parseISO, subDays } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -72,6 +72,32 @@ export default function MainScreen() {
   const [conditionSaving, setConditionSaving] = useState(false)
   const [noteDraft, setNoteDraft] = useState('')
   const [noteSaving, setNoteSaving] = useState(false)
+  const [conditionLoadedDate, setConditionLoadedDate] = useState<string | null>(null)
+  const [refreshVersion, setRefreshVersion] = useState(0)
+  // A date can be visited more than once while an earlier request is pending.
+  const viewRef = useRef({ date: today, version: 0 })
+  const conditionRequest = useRef(0)
+  const recordsRequest = useRef(0)
+  const refreshRequest = useRef(0)
+  const conditionSave = useRef<{ date: string; version: number } | null>(null)
+  const noteDrafts = useRef(new Map<string, string>())
+  const conditionReady = conditionLoadedDate === selectedDate
+  const savingCondition = conditionSaving || noteSaving
+
+  const selectDate = (date: string) => {
+    if (date === viewRef.current.date) return
+    viewRef.current = { date, version: viewRef.current.version + 1 }
+    conditionRequest.current += 1
+    recordsRequest.current += 1
+    refreshRequest.current += 1
+    setSelectedDate(date)
+    setCondition(null)
+    setConditionLoadedDate(null)
+    setNoteDraft(noteDrafts.current.get(date) ?? '')
+    setTodayRecords([])
+    setLoading(true)
+    setError(null)
+  }
 
   const toggleTheme = () => {
     const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
@@ -106,8 +132,12 @@ export default function MainScreen() {
   }, [])
 
   const fetchToday = useCallback(async () => {
+    const view = viewRef.current
+    if (view.date !== selectedDate) return
+    const request = ++recordsRequest.current
     const res = await fetch(`/api/records?date=${selectedDate}`)
-    setTodayRecords(await readRecords(res))
+    const records = await readRecords(res)
+    if (viewRef.current === view && recordsRequest.current === request) setTodayRecords(records)
   }, [readRecords, selectedDate])
 
   const fetchRecent = useCallback(async () => {
@@ -138,29 +168,40 @@ export default function MainScreen() {
   }, [])
 
   const fetchCondition = useCallback(async () => {
+    const view = viewRef.current
+    if (view.date !== selectedDate || conditionSave.current?.date === selectedDate) return
+    const request = ++conditionRequest.current
     const res = await fetch(`/api/condition?date=${selectedDate}`)
     if (res.status === 401) { window.location.assign('/login'); throw new Error('ログインの有効期限が切れました') }
     if (!res.ok) throw new Error('今日の体調を読み込めませんでした')
     const loaded = await res.json() as DailyCondition | null
+    if (viewRef.current !== view || conditionRequest.current !== request) return
+    if (loaded && loaded.date !== selectedDate) throw new Error('体調の日付が一致しません。もう一度読み込んでください')
     setCondition(loaded)
-    setNoteDraft(loaded?.note ?? '')
+    setConditionLoadedDate(selectedDate)
+    setNoteDraft(noteDrafts.current.get(selectedDate) ?? loaded?.note ?? '')
   }, [selectedDate])
 
   const fetchAll = useCallback(async () => {
+    const view = viewRef.current
+    if (view.date !== selectedDate) return
+    const request = ++refreshRequest.current
     setLoading(true)
     setError(null)
     try {
       await Promise.all([fetchToday(), fetchRecent(), fetchInsights(), fetchSettings(), fetchCondition()])
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '記録を読み込めませんでした')
+      if (viewRef.current === view && refreshRequest.current === request) {
+        setError(cause instanceof Error ? cause.message : '記録を読み込めませんでした')
+      }
     } finally {
-      setLoading(false)
+      if (viewRef.current === view && refreshRequest.current === request) setLoading(false)
     }
-  }, [fetchToday, fetchRecent, fetchInsights, fetchSettings, fetchCondition])
+  }, [fetchToday, fetchRecent, fetchInsights, fetchSettings, fetchCondition, selectedDate])
 
   useEffect(() => {
     void Promise.resolve().then(fetchAll)
-  }, [fetchAll])
+  }, [fetchAll, refreshVersion])
 
   useEffect(() => {
     const refreshWhenVisible = () => {
@@ -215,7 +256,25 @@ export default function MainScreen() {
     }
   }
 
+  const beginConditionSave = () => {
+    if (conditionSave.current || viewRef.current.date !== selectedDate || !conditionReady || (condition && condition.date !== selectedDate)) return null
+    const view = viewRef.current
+    conditionSave.current = view
+    // A read started before this write must not replace the saved response.
+    conditionRequest.current += 1
+    setError(null)
+    return view
+  }
+
+  const finishConditionSave = (view: { date: string; version: number }) => {
+    conditionSave.current = null
+    // Returning to the saving date may have skipped a read until the write finished.
+    if (viewRef.current !== view) setRefreshVersion(version => version + 1)
+  }
+
   const saveCondition = async (score: DailyCondition['score']) => {
+    const view = beginConditionSave()
+    if (!view) return
     setConditionSaving(true)
     try {
       // ⚠️ PUT は item ごと置き換える。note を送らないと**既存のメモが消える**。
@@ -223,10 +282,17 @@ export default function MainScreen() {
       if (res.status === 401) window.location.assign('/login')
       if (!res.ok) throw new Error()
       const saved = await res.json() as DailyCondition
-      setCondition(saved)
-      setNoteDraft(saved.note ?? '')
-    } catch { setError('体調の保存に失敗しました。もう一度お試しください。') }
-    finally { setConditionSaving(false) }
+      if (saved.date !== view.date) throw new Error()
+      if (viewRef.current === view) {
+        setCondition(saved)
+        setNoteDraft(noteDrafts.current.get(view.date) ?? saved.note ?? '')
+      }
+    } catch {
+      if (viewRef.current === view) setError('体調の保存に失敗しました。もう一度お試しください。')
+    } finally {
+      setConditionSaving(false)
+      finishConditionSave(view)
+    }
   }
 
   // その日のメモ。服薬の記録とは別に、一日について残しておける場所。
@@ -234,16 +300,26 @@ export default function MainScreen() {
   // （勝手に 3 を入れたりしない。記録していない体調を作らない）。
   const saveConditionNote = async () => {
     if (!condition) return
+    const view = beginConditionSave()
+    if (!view) return
     setNoteSaving(true)
     try {
       const res = await fetch('/api/condition', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: selectedDate, score: condition.score, note: noteDraft.trim() || undefined }) })
       if (res.status === 401) window.location.assign('/login')
       if (!res.ok) throw new Error()
       const saved = await res.json() as DailyCondition
-      setCondition(saved)
-      setNoteDraft(saved.note ?? '')
-    } catch { setError('メモの保存に失敗しました。もう一度お試しください。') }
-    finally { setNoteSaving(false) }
+      if (saved.date !== view.date) throw new Error()
+      noteDrafts.current.delete(view.date)
+      if (viewRef.current === view) {
+        setCondition(saved)
+        setNoteDraft(saved.note ?? '')
+      }
+    } catch {
+      if (viewRef.current === view) setError('メモの保存に失敗しました。もう一度お試しください。')
+    } finally {
+      setNoteSaving(false)
+      finishConditionSave(view)
+    }
   }
 
   const handleDelete = (id: string) => {
@@ -342,7 +418,7 @@ export default function MainScreen() {
         <section className="flex items-center justify-between rounded-2xl bg-white dark:bg-gray-800 px-3 py-2 shadow-sm" aria-label="記録日を移動">
           <button
             type="button"
-            onClick={() => setSelectedDate(format(subDays(parseISO(selectedDate), 1), 'yyyy-MM-dd'))}
+            onClick={() => selectDate(format(subDays(parseISO(selectedDate), 1), 'yyyy-MM-dd'))}
             className="min-h-11 rounded-xl px-3 text-sm font-medium text-indigo-700 hover:bg-indigo-50 dark:text-indigo-300 dark:hover:bg-indigo-950"
             aria-label="前日を表示"
           >
@@ -351,7 +427,7 @@ export default function MainScreen() {
           <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{selectedDateLabel}</span>
           <button
             type="button"
-            onClick={() => setSelectedDate(today)}
+            onClick={() => selectDate(today)}
             disabled={viewingToday}
             className="min-h-11 rounded-xl px-3 text-sm font-medium text-indigo-700 hover:bg-indigo-50 disabled:cursor-default disabled:text-gray-300 dark:text-indigo-300 dark:hover:bg-indigo-950 dark:disabled:text-gray-600"
             aria-label="今日を表示"
@@ -368,7 +444,7 @@ export default function MainScreen() {
           <div className="grid grid-cols-5 gap-2" role="group" aria-label="今日の体調を1から5で選択">
             {([1, 2, 3, 4, 5] as const).map(score => {
               const selected = condition?.score === score
-              return <button key={score} type="button" disabled={conditionSaving} onClick={() => void saveCondition(score)} aria-pressed={selected} aria-label={`体調 ${score}: ${['とてもつらい', 'つらい', 'ふつう', '良い', 'とても良い'][score - 1]}`} className={`min-h-11 rounded-xl border-2 text-lg font-semibold transition-colors ${selected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-indigo-300'}`}>{score}</button>
+              return <button key={score} type="button" disabled={savingCondition || !conditionReady} onClick={() => void saveCondition(score)} aria-pressed={selected} aria-label={`体調 ${score}: ${['とてもつらい', 'つらい', 'ふつう', '良い', 'とても良い'][score - 1]}`} className={`min-h-11 rounded-xl border-2 text-lg font-semibold transition-colors disabled:opacity-60 ${selected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-indigo-300'}`}>{score}</button>
             })}
           </div>
           <div className="flex justify-between text-[11px] text-gray-600 dark:text-gray-500 mt-1"><span>つらい</span><span>良い</span></div>
@@ -378,22 +454,26 @@ export default function MainScreen() {
             <textarea
               id="condition-note"
               value={noteDraft}
-              onChange={e => setNoteDraft(e.target.value)}
+              onChange={e => {
+                if (e.target.value === (condition?.note ?? '')) noteDrafts.current.delete(selectedDate)
+                else noteDrafts.current.set(selectedDate, e.target.value)
+                setNoteDraft(e.target.value)
+              }}
               placeholder="服薬のこと以外でも、気になったことを"
               rows={2}
               maxLength={200}
-              disabled={!condition || noteSaving}
+              disabled={!conditionReady || !condition || noteSaving}
               className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400"
             />
             <div className="flex items-center justify-between mt-1">
               <p className="text-xs text-gray-600 dark:text-gray-500">
-                {condition ? `${noteDraft.length}/200` : '先に上の1〜5を選ぶと書けます'}
+                {!conditionReady ? '体調を読み込んでいます。読み込めない場合は画面を再読み込みしてください' : condition ? `${noteDraft.length}/200` : '先に上の1〜5を選ぶと書けます'}
               </p>
               {condition && noteDraft.trim() !== (condition.note ?? '') && (
                 <button
                   type="button"
                   onClick={() => void saveConditionNote()}
-                  disabled={noteSaving}
+                  disabled={savingCondition || !conditionReady}
                   className="min-h-11 px-4 rounded-xl bg-indigo-500 text-white text-sm font-medium disabled:opacity-60"
                 >
                   {noteSaving ? '保存しています...' : 'メモを保存'}
