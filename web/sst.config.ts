@@ -72,6 +72,8 @@ export default $config({
 
     const web = new sst.aws.Nextjs('Web', {
       path: '.',
+      // Keep the production server's reserved concurrency explicit.
+      ...(isProduction ? { transform: { server: { concurrency: { reserved: 100 } } } } : {}),
       // production 以外はドメインを付けない。CloudFront の既定URLで足りるうえ、
       // ACM 証明書と DNS 検証を待たずに test 環境を立てられる。
       // 付けてしまうと本番ドメインを奪い合う（F-07）。
