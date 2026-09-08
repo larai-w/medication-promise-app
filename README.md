@@ -44,6 +44,16 @@ In recent medication history, **服薬記録のメモを見る** expands an indi
 without truncating its text or removing line breaks. These notes support personal
 recording and reflection; they do not assess symptoms or recommend medication changes.
 
+## Recording Times
+
+The Web implementation uses the loaded reminder settings consistently for the visible
+recording button, its screen-reader label, and suggested times in the add form.
+A quick action records the displayed time; it does not measure when medication was
+taken. If settings cannot be loaded, quick recording is unavailable and a time must
+be entered manually. Editing an existing record preserves its recorded time unless
+the person changes it. Times shown while viewing an earlier date are current settings,
+not a reconstruction of that day's schedule.
+
 ## Product Management Evidence
 
 This repository is also a public delivery record for a small, AI-assisted HealthTech project:

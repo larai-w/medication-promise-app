@@ -6,7 +6,7 @@ import { format, parseISO, subDays } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { TIMINGS, type Timing } from '@/lib/constants'
 import {
-  DEFAULT_MEDICATION_SETTINGS,
+  parseMedicationSettingsInput,
   settingsToTimingDefaults,
   type MedicationSettings,
 } from '@/lib/settings'
@@ -66,7 +66,9 @@ export default function MainScreen() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmation, setConfirmation] = useState<{ date: string; message: string } | null>(null)
-  const [settings, setSettings] = useState<MedicationSettings>(DEFAULT_MEDICATION_SETTINGS)
+  const [settings, setSettings] = useState<MedicationSettings | null>(null)
+  const settingsRequest = useRef(0)
+  const trustedSettings = useRef<MedicationSettings | null>(null)
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
     if (typeof window === 'undefined') return 'system'
     return (localStorage.getItem('theme') as 'light' | 'dark' | 'system' | null) ?? 'system'
@@ -162,13 +164,27 @@ export default function MainScreen() {
   }, [])
 
   const fetchSettings = useCallback(async () => {
-    const res = await fetch('/api/settings')
-    if (res.status === 401) {
-      window.location.assign('/login')
-      throw new Error('ログインの有効期限が切れました')
+    const request = ++settingsRequest.current
+    trustedSettings.current = null
+    setSettings(null)
+    try {
+      const res = await fetch('/api/settings')
+      if (request !== settingsRequest.current) return
+      if (res.status === 401) {
+        window.location.assign('/login')
+        throw new Error('ログインの有効期限が切れました')
+      }
+      if (!res.ok) throw new Error('予定を確認できません。「更新」で読み込み直してください。')
+      const loaded = parseMedicationSettingsInput(await res.json())
+      if (request !== settingsRequest.current) return
+      trustedSettings.current = loaded
+      setSettings(loaded)
+    } catch (cause) {
+      if (request !== settingsRequest.current) return
+      trustedSettings.current = null
+      setSettings(null)
+      throw cause
     }
-    if (!res.ok) throw new Error('設定を読み込めませんでした')
-    setSettings(await res.json() as MedicationSettings)
   }, [])
 
   const fetchCondition = useCallback(async () => {
@@ -223,7 +239,7 @@ export default function MainScreen() {
     (acc, t) => { acc[t] = todayRecords.find(r => r.timing === t); return acc },
     {} as Record<Timing, MedicationRecord | undefined>
   )
-  const timingDefaults = settingsToTimingDefaults(settings)
+  const timingDefaults = settings ? settingsToTimingDefaults(settings) : null
   const recordIntegrity = analyzeRecordIntegrity(todayRecords, selectedDate)
 
   const completedCount = todayRecords.length
@@ -243,6 +259,8 @@ export default function MainScreen() {
 
   const handleQuickRecord = async (timing: Timing) => {
     if (recordSavingRef.current || modalState || recordsByTiming[timing]) return
+    // A refresh invalidates the displayed schedule before React renders again.
+    if (!settings || trustedSettings.current !== settings || !timingDefaults) return
     recordSavingRef.current = true
     setRecordSaving(true)
     setQuickSaving(timing)
@@ -641,11 +659,19 @@ export default function MainScreen() {
               {confirmation.message}
             </div>
           )}
+          <p className="mb-3 text-sm text-gray-600 dark:text-gray-400">
+            {settings
+              ? viewingToday
+                ? 'ボタンに表示された時刻で記録します。実際の時刻が異なる場合は「手動で記録を追加」を使ってください。'
+                : '未記録のボタンは現在の設定時刻です。この日の予定を示すものではありません。実際の時刻を確認して記録してください。'
+              : '予定を確認できません。「更新」で読み込み直すか、手動で時刻を入力して記録してください。'}
+          </p>
           <div className="space-y-3">
             {TIMINGS.map(timing => (
               <MedicationButton
                 key={timing}
                 timing={timing}
+                scheduledTime={timingDefaults?.[timing] ?? null}
                 record={recordsByTiming[timing]}
                 disabled={recordSaving || modalState !== null}
                 saving={quickSaving === timing}
@@ -688,6 +714,7 @@ export default function MainScreen() {
           mode={modalState.mode}
           record={modalState.record}
           defaultTiming={modalState.defaultTiming}
+          timingDefaults={timingDefaults}
           today={selectedDate}
           onSave={handleSave}
           onClose={() => { if (!recordSavingRef.current) setModalState(null) }}
