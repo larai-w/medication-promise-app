@@ -4,6 +4,13 @@ Medication Promise (`お薬の約束`) is an in-development medication logging t
 
 The current production deployment is intentionally limited to one household. It is not a medical device, does not decide whether medication should be taken, and is not yet a multi-household public service.
 
+## Contributing
+
+Contributions are welcome. If you want to propose changes, start from [CONTRIBUTING](./CONTRIBUTING.md).
+
+- Quick start for first contributions: open an issue with the [Good first issue](https://github.com/larai-w/medication-promise-app/issues/new/choose) template.
+- For code changes, open a pull request from [Compare changes](https://github.com/larai-w/medication-promise-app/compare).
+
 ## Technical Product Management Profile
 
 This project demonstrates end-to-end Technical PM capability in a HealthTech context:

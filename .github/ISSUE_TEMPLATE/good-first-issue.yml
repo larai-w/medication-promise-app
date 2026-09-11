@@ -1,0 +1,34 @@
+name: Good first issue
+description: Low-risk contribution task for new contributors.
+title: "[Good first] "
+labels:
+  - good first issue
+  - help wanted
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue template is for beginner-safe changes.
+        Keep content free of private information and clinical claims.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Task summary
+      description: Describe one small, concrete change.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      value: |
+        - [ ] Change is scoped and minimal
+        - [ ] Verification plan is included
+        - [ ] Boundary checks are respected
+    validations:
+      required: true
+  - type: input
+    id: effort
+    attributes:
+      label: Estimated effort
+      placeholder: 45m
