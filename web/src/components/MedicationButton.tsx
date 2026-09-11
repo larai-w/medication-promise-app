@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { TIMING_DEFAULTS, type Timing } from '@/lib/constants'
+import { type Timing } from '@/lib/constants'
 import type { MedicationRecord } from '@/types'
 
 interface Props {
   timing: Timing
+  scheduledTime: string | null
   record?: MedicationRecord
   disabled?: boolean
   saving?: boolean
@@ -15,12 +16,12 @@ interface Props {
   onReview: (record: MedicationRecord) => void
 }
 
-export default function MedicationButton({ timing, record, disabled = false, saving = false, onQuickRecord, onEdit, onDelete, onReview }: Props) {
+export default function MedicationButton({ timing, scheduledTime, record, disabled = false, saving = false, onQuickRecord, onEdit, onDelete, onReview }: Props) {
   const [showActions, setShowActions] = useState(false)
   const [justRecorded, setJustRecorded] = useState(false)
 
   const handleQuickRecord = () => {
-    if (disabled) return
+    if (disabled || !scheduledTime) return
     setJustRecorded(true)
     onQuickRecord()
     setTimeout(() => setJustRecorded(false), 600)
@@ -88,14 +89,14 @@ export default function MedicationButton({ timing, record, disabled = false, sav
 
   return (
     <button
-      disabled={disabled}
+      disabled={disabled || !scheduledTime}
       aria-busy={saving}
       onClick={handleQuickRecord}
       className="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 flex items-center justify-between hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 active:bg-indigo-100 dark:active:bg-indigo-900/50 transition-colors"
-      aria-label={`${timing} ${TIMING_DEFAULTS[timing]} 服薬予定、タップで記録`}
+      aria-label={scheduledTime ? `${timing} ${scheduledTime}で記録` : `${timing} 予定を確認できません`}
     >
       <span className="font-semibold text-gray-700 dark:text-gray-200 text-lg">{timing}</span>
-      <span className="text-gray-600 dark:text-gray-500 text-sm">{saving ? '保存中…' : `${TIMING_DEFAULTS[timing]} 💊`}</span>
+      <span className="text-gray-600 dark:text-gray-500 text-sm">{saving ? '保存中…' : scheduledTime ? `${scheduledTime}で記録` : '予定を確認できません'}</span>
     </button>
   )
 }
