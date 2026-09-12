@@ -276,7 +276,7 @@ export default function MainScreen() {
       if (res.status === 401) window.location.assign('/login')
       if (!res.ok) throw new Error()
       void medpromiseTracker.stop()
-      setConfirmation({ date: selectedDate, message: `${selectedDateLabel}の${timing}の服薬記録を保存しました。` })
+      setConfirmation({ date: selectedDate, message: `${selectedDateLabel}の${timing}（${timingDefaults[timing]}）の服薬記録を保存しました。` })
       // A failed refresh does not undo a successful write or require another POST.
       try {
         const saved = await res.json() as MedicationRecord
@@ -377,7 +377,7 @@ export default function MainScreen() {
       })
       if (!res.ok) throw new Error()
       await fetchAll()
-      setConfirmation({ date: selectedDate, message: `${selectedDateLabel}の${record.timing}の記録を確認済みにしました。` })
+      setConfirmation({ date: selectedDate, message: `${selectedDateLabel}の${record.timing}（${record.time}）の記録を確認済みにしました。` })
     } catch {
       setError('確認状態の更新に失敗しました。もう一度お試しください。')
     }
@@ -429,7 +429,7 @@ export default function MainScreen() {
       void medpromiseTracker.stop()
       setModalState(current => current === savingModal ? null : current)
       const savedDateLabel = format(parseISO(data.date), 'yyyy年M月d日 (eee)', { locale: ja })
-      setConfirmation({ date: data.date, message: `${savedDateLabel}の${data.timing}の服薬記録を${editId ? '更新' : '保存'}しました。` })
+      setConfirmation({ date: data.date, message: `${savedDateLabel}の${data.timing}（${data.time}）の服薬記録を${editId ? '更新' : '保存'}しました。` })
       try {
         const saved = await res.json() as MedicationRecord
         if (viewRef.current.date === saved.date) {

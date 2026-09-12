@@ -8,8 +8,9 @@ test('record success is announced with the saved date and timing', () => {
   assert.match(mainScreen, /role="status"/)
   assert.match(mainScreen, /aria-live="polite"/)
   assert.match(mainScreen, /aria-atomic="true"/)
-  assert.match(mainScreen, /\$\{selectedDateLabel\}の\$\{timing\}の服薬記録を保存しました。/)
-  assert.match(mainScreen, /\$\{savedDateLabel\}の\$\{data\.timing\}の服薬記録を\$\{editId \? '更新' : '保存'\}しました。/)
+  assert.match(mainScreen, /\$\{selectedDateLabel\}の\$\{timing\}（\$\{timingDefaults\[timing\]\}）の服薬記録を保存しました。/)
+  assert.match(mainScreen, /\$\{savedDateLabel\}の\$\{data\.timing\}（\$\{data\.time\}）の服薬記録を\$\{editId \? '更新' : '保存'\}しました。/)
+  assert.match(mainScreen, /\$\{selectedDateLabel\}の\$\{record\.timing\}（\$\{record\.time\}）の記録を確認済みにしました。/)
 })
 
 test('a save confirmation is scoped to the date it describes', () => {
