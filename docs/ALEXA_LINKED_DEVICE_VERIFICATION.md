@@ -37,7 +37,7 @@ to make the device test pass.
 
 ## Test Data
 
-Use the existing private owner household. Choose one medication timing that can be
+Use the existing private household. Choose one medication timing that can be
 clearly identified by the test timestamp. Do not change the real medication name or
 schedule solely for this test.
 

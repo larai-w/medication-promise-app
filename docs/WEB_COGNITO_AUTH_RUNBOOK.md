@@ -103,7 +103,7 @@ was used as public evidence.
 2. Revert `WEB_AUTH_MODE` to `mvp` through a reviewed deployment.
 3. Keep `HOUSEHOLD_PARTITION_MODE=household` so the existing owner records continue
    to use the migrated household partition.
-4. Verify the prior access-code login and owner-household API smoke test.
+4. Verify the prior access-code login and existing-household API smoke test.
 5. Investigate Cognito configuration or membership state without moving records back
    to `USER#default-user`.
 

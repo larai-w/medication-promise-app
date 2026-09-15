@@ -76,7 +76,7 @@ with the returned identity instead of importing a global `USER_ID`.
 1. Household-aware data helpers were added with `default-user` retained as a
    compatibility fallback for local development and controlled rollback.
 2. A migration script copied existing `USER#default-user` records and settings into
-   one owner household partition without deleting the source.
+   one existing household partition without deleting the source.
 3. Dry-run and write-mode migration checks were completed before the partition cutover.
 4. Production Web data access was switched to `HOUSEHOLD#<householdId>`.
 5. Cognito authorization code + PKCE now resolves the provider subject; API routes

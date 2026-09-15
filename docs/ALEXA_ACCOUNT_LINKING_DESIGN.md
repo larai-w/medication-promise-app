@@ -189,7 +189,7 @@ records and settings already exist in a household partition.
 The migration work here is identity state, not record state:
 
 1. Choose the invited-household identity provider and Web sign-in path.
-2. Create membership items for the existing owner household in a non-public setup.
+2. Create membership items for the existing household in a non-public setup.
 3. Enable Alexa account linking in the skill configuration.
 4. Deploy Lambda code that resolves linked household membership.
 5. Test linked record creation and settings-backed reminder creation.
