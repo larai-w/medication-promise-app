@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { format, addMonths, subMonths, getDaysInMonth, startOfMonth } from 'date-fns'
 import { ja } from 'date-fns/locale'
-import { TIMINGS, type Timing } from '@/lib/constants'
+import { TIMINGS, timingLabel, type Timing } from '@/lib/constants'
 import type { MedicationRecord } from '@/types'
 
 export default function MonthlyScreen() {
@@ -182,7 +182,7 @@ export default function MonthlyScreen() {
                   <tr className="bg-indigo-700 dark:bg-indigo-900 text-white">
                     <th className="px-3 py-3 text-left font-medium w-20">日付</th>
                     {TIMINGS.map(t => (
-                      <th key={t} className="px-2 py-3 text-center font-medium">{t}</th>
+                      <th key={t} className="px-2 py-3 text-center font-medium">{timingLabel(t)}</th>
                     ))}
                   </tr>
                 </thead>

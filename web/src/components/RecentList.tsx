@@ -1,5 +1,6 @@
 import { format, parseISO } from 'date-fns'
 import { ja } from 'date-fns/locale'
+import { timingLabel } from '@/lib/constants'
 import type { MedicationRecord } from '@/types'
 
 interface Props {
@@ -38,7 +39,7 @@ export default function RecentList({ records }: Props) {
             {byDate[date].map(record => (
               <div key={record.id} className="px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{record.timing}</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{timingLabel(record.timing)}</span>
                   <span className="shrink-0 text-sm text-gray-500 dark:text-gray-400">{record.time}</span>
                 </div>
                 {record.notes?.trim() && (

@@ -7,7 +7,7 @@ import {
 } from './dynamodb.mjs'
 import { AlexaHouseholdError, resolveAlexaHousehold } from './household.mjs'
 import { makeCognitoTokenVerifier } from './cognito.mjs'
-import { buildReminderText, formatReminderSummary, getMedicationName, getReminderSchedule } from './config.mjs'
+import { buildReminderText, formatReminderSummary, getMedicationName, getReminderSchedule, timingLabel } from './config.mjs'
 
 // Default household resolver: verify the linked Cognito token, then resolve the
 // caller's household membership. Both dependencies are built from environment
@@ -105,7 +105,7 @@ function respond(text, shouldEndSession = true) {
       reprompt: shouldEndSession ? undefined : {
         outputSpeech: {
           type: 'PlainText',
-          text: 'いつの薬を飲みましたか？朝、昼、晩、夜8時、夜9時のいずれかを教えてください。',
+          text: 'いつの薬を飲みましたか？朝、昼、夕方、夜8時、夜9時のいずれかを教えてください。',
         },
       },
       shouldEndSession,
@@ -134,7 +134,7 @@ export function createHandler({
 
   if (requestType === 'LaunchRequest') {
     return respond(
-      'お薬の約束です。朝、昼、晩、夜8時、夜9時のように、いつの薬を飲んだか教えてください。',
+      'お薬の約束です。朝、昼、夕方、夜8時、夜9時のように、いつの薬を飲んだか教えてください。',
       false
     )
   }
@@ -184,7 +184,7 @@ export function createHandler({
         : ''
       const speech = timing === '夜9時' && minutesAgo === null
         ? NIGHT9_MESSAGE
-        : `${when}${timing}の服薬を記録しました。`
+        : `${when}${timingLabel(timing)}の服薬を記録しました。`
       return respond(speech)
     }
 
@@ -232,7 +232,7 @@ export function createHandler({
     // タイミング不明フォールバック
     if (intentName === 'RecordUnknownIntent') {
       return respond(
-        'どのタイミングの薬ですか？朝、昼、晩、夜8時、夜9時のいずれかを教えてください。',
+        'どのタイミングの薬ですか？朝、昼、夕方、夜8時、夜9時のいずれかを教えてください。',
         false
       )
     }

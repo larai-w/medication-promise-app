@@ -8,6 +8,31 @@ export const DEFAULT_REMINDER_SCHEDULE = Object.freeze([
 
 const SUPPORTED_TIMINGS = new Set(DEFAULT_REMINDER_SCHEDULE.map(({ timing }) => timing))
 
+/**
+ * 読み上げに使う名前。**保存する値ではない。**
+ *
+ * `timing` は記録そのものに保存され、書き出しスキーマ（v1/v2）の `enum` にも入っている。
+ * ここを変えると過去の記録と比べられなくなるので、**保存値は `晩` のまま**にして、
+ * 人が聞く言葉だけを変える。
+ *
+ * 2026-09-16 オーナー依頼: 「晩」ではなく「夕方」と言ってほしい。
+ * Web 側にも同じ対応表がある（`web/src/lib/constants.ts`。zip で固める都合上
+ * import を共有できないので複製している）。**ずれると画面と音声で呼び名が食い違う**ので、
+ * `web/test/timing-label.test.mts` が両方を読み比べて縛っている。
+ */
+export const TIMING_LABELS = Object.freeze({
+  '朝': '朝',
+  '昼': '昼',
+  '晩': '夕方',
+  '夜8時': '夜8時',
+  '夜9時': '夜9時',
+})
+
+// 知らない値はそのまま返す（勝手に置き換えない）。
+export function timingLabel(timing) {
+  return TIMING_LABELS[timing] ?? timing
+}
+
 function parseTime(value) {
   if (typeof value !== 'string' || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value)) {
     return undefined
@@ -71,11 +96,11 @@ export function buildReminderText(timing, medicationName = '') {
   const safeName = medicationName.trim().slice(0, 80)
   const subject = safeName ? `${safeName}の服薬予定` : 'お薬の服薬予定'
   const closing = timing === '夜9時' ? '今日も一日お疲れさまでした。' : ''
-  return `${timing}の${subject}時刻です。服薬の予定を確認してください。${closing}記録するときは「アレクサ、お薬の約束を開いて」と話しかけてください。`
+  return `${timingLabel(timing)}の${subject}時刻です。服薬の予定を確認してください。${closing}記録するときは「アレクサ、お薬の約束を開いて」と話しかけてください。`
 }
 
 export function formatReminderSummary(schedule) {
   return schedule
-    .map(({ timing, hour, min }) => `${timing}${hour}時${min === 0 ? '' : `${min}分`}`)
+    .map(({ timing, hour, min }) => `${timingLabel(timing)}${hour}時${min === 0 ? '' : `${min}分`}`)
     .join('、')
 }
