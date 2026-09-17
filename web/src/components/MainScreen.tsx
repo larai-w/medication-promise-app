@@ -18,6 +18,7 @@ import WeeklyReport from './WeeklyReport'
 import type { Badge } from '@/lib/badges'
 import { medpromiseTracker } from '@/lib/metrics/record-time-tracker'
 import { analyzeRecordIntegrity } from '@/lib/record-integrity'
+import { latestRecordForTiming } from '../lib/latest-record.ts'
 import { buildRecordEdit } from '@/lib/record-edit'
 
 interface ModalState {
@@ -235,8 +236,11 @@ export default function MainScreen() {
     }
   }, [fetchAll])
 
+  // 同じ時間帯に記録が複数あるときは「最後に記録されたもの」を代表にする。
+  // find() だと配列が昇順のため一番古い記録が残り、言い直しが画面に反映されなかった。
+  // 古い記録は消えない。duplicate として analyzeRecordIntegrity が拾い続ける。
   const recordsByTiming = TIMINGS.reduce<Record<Timing, MedicationRecord | undefined>>(
-    (acc, t) => { acc[t] = todayRecords.find(r => r.timing === t); return acc },
+    (acc, t) => { acc[t] = latestRecordForTiming(todayRecords, t); return acc },
     {} as Record<Timing, MedicationRecord | undefined>
   )
   const timingDefaults = settings ? settingsToTimingDefaults(settings) : null
