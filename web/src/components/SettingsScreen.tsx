@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { timingLabel } from '@/lib/constants'
 import { DEFAULT_MEDICATION_SETTINGS, type MedicationSettings } from '@/lib/settings'
 import { hasMetricsConsent, setMetricsConsent } from '@/lib/metrics/record-time-tracker'
 
@@ -158,7 +159,7 @@ export default function SettingsScreen() {
                 <h2 className="text-sm font-semibold text-gray-800">リマインダー時刻</h2>
                 {settings.reminderSchedule.map((item, index) => (
                   <label key={item.timing} className="flex items-center justify-between gap-4">
-                    <span className="text-gray-700 font-medium">{item.timing}</span>
+                    <span className="text-gray-700 font-medium">{timingLabel(item.timing)}</span>
                     <input
                       type="time"
                       value={item.time}

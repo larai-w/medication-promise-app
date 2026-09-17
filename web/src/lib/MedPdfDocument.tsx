@@ -1,7 +1,7 @@
 import React from 'react'
 import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer'
 import path from 'path'
-import { TIMINGS, type Timing } from '@/lib/constants'
+import { TIMINGS, timingLabel, type Timing } from '@/lib/constants'
 import type { MedicationRecord } from '@/types'
 
 Font.register({
@@ -59,7 +59,7 @@ export default function MedPdfDocument({ records, yearMonth, daysInMonth }: Prop
           <View style={s.headerRow}>
             <View style={s.dateCell}><Text style={s.headerText}>日付</Text></View>
             {TIMINGS.map(t => (
-              <View key={t} style={s.timingCell}><Text style={s.headerText}>{t}</Text></View>
+              <View key={t} style={s.timingCell}><Text style={s.headerText}>{timingLabel(t)}</Text></View>
             ))}
             <View style={s.notesCell}><Text style={s.headerText}>メモ</Text></View>
           </View>

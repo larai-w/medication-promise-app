@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { type Timing } from '@/lib/constants'
+import { timingLabel, type Timing } from '@/lib/constants'
 import type { MedicationRecord } from '@/types'
 
 interface Props {
@@ -31,7 +31,7 @@ export default function MedicationButton({ timing, scheduledTime, record, disabl
     return (
       <div
         role="group"
-        aria-label={`${timing} 服薬済み`}
+        aria-label={`${timingLabel(timing)} 服薬済み`}
         className={`rounded-xl border-2 border-green-400 bg-green-50 dark:border-green-600 dark:bg-green-900/30 overflow-hidden transition-all ${justRecorded ? 'animate-fade-slide-up' : ''}`}
       >
         <button
@@ -39,25 +39,25 @@ export default function MedicationButton({ timing, scheduledTime, record, disabl
           onClick={() => setShowActions(v => !v)}
           className="w-full px-4 py-4 flex items-center justify-between text-left"
           aria-expanded={showActions}
-          aria-label={`${timing} 服薬済み ${record.time} 詳細を表示`}
+          aria-label={`${timingLabel(timing)} 服薬済み ${record.time} 詳細を表示`}
         >
           <div className="flex items-center gap-3">
             <span className={`text-green-600 dark:text-green-400 text-lg font-bold ${justRecorded ? 'animate-check-pop' : ''}`} aria-hidden="true">
               ✓
             </span>
-            <span className="font-semibold text-green-800 dark:text-green-300 text-lg">{timing}</span>
+            <span className="font-semibold text-green-800 dark:text-green-300 text-lg">{timingLabel(timing)}</span>
           </div>
           <span className="text-green-700 dark:text-green-400 text-sm">{record.time} 服薬済み</span>
         </button>
         {showActions && (
-          <div className="border-t border-green-200 dark:border-green-700 flex" role="toolbar" aria-label={`${timing} の操作`}>
+          <div className="border-t border-green-200 dark:border-green-700 flex" role="toolbar" aria-label={`${timingLabel(timing)} の操作`}>
             {record.source === 'alexa' && record.reviewStatus !== 'reviewed' && (
               <>
                 <button
                   disabled={disabled}
                   onClick={() => { onReview(record); setShowActions(false) }}
                   className="flex-1 py-3 text-sm text-amber-700 dark:text-amber-300 font-medium hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors"
-                  aria-label={`${timing} の音声入力記録を確認済みにする`}
+                  aria-label={`${timingLabel(timing)} の音声入力記録を確認済みにする`}
                 >
                   確認済み
                 </button>
@@ -68,7 +68,7 @@ export default function MedicationButton({ timing, scheduledTime, record, disabl
               disabled={disabled}
               onClick={() => { onEdit(record); setShowActions(false) }}
               className="flex-1 py-3 text-sm text-indigo-600 dark:text-indigo-400 font-medium hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
-              aria-label={`${timing} の記録を編集`}
+              aria-label={`${timingLabel(timing)} の記録を編集`}
             >
               編集
             </button>
@@ -77,7 +77,7 @@ export default function MedicationButton({ timing, scheduledTime, record, disabl
               disabled={disabled}
               onClick={() => { onDelete(record.id); setShowActions(false) }}
               className="flex-1 py-3 text-sm text-red-500 dark:text-red-400 font-medium hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-              aria-label={`${timing} の記録を削除`}
+              aria-label={`${timingLabel(timing)} の記録を削除`}
             >
               削除
             </button>
@@ -93,9 +93,9 @@ export default function MedicationButton({ timing, scheduledTime, record, disabl
       aria-busy={saving}
       onClick={handleQuickRecord}
       className="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 flex items-center justify-between hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 active:bg-indigo-100 dark:active:bg-indigo-900/50 transition-colors"
-      aria-label={scheduledTime ? `${timing} ${scheduledTime}で記録` : `${timing} 予定を確認できません`}
+      aria-label={scheduledTime ? `${timingLabel(timing)} ${scheduledTime}で記録` : `${timingLabel(timing)} 予定を確認できません`}
     >
-      <span className="font-semibold text-gray-700 dark:text-gray-200 text-lg">{timing}</span>
+      <span className="font-semibold text-gray-700 dark:text-gray-200 text-lg">{timingLabel(timing)}</span>
       <span className="text-gray-600 dark:text-gray-500 text-sm">{saving ? '保存中…' : scheduledTime ? `${scheduledTime}で記録` : '予定を確認できません'}</span>
     </button>
   )
