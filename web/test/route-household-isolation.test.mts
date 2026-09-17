@@ -112,6 +112,11 @@ test('PDF and settings handlers receive only the resolved household', async () =
       seen.push(`pdf:${household.partitionKey}`)
       return [record]
     },
+    // PDF はその日の調子とメモも読む（2026-09-17 追加）。これも世帯の分離対象。
+    listConditions: async (household) => {
+      seen.push(`pdf-condition:${household.partitionKey}`)
+      return []
+    },
     renderPdf: async () => new TextEncoder().encode('synthetic-pdf'),
   })
   const settingsHandlers = makeSettingsHandlers({
@@ -136,6 +141,7 @@ test('PDF and settings handlers receive only the resolved household', async () =
 
   assert.deepEqual(seen, [
     'pdf:HOUSEHOLD#household-a',
+    'pdf-condition:HOUSEHOLD#household-a',
     'settings-get:HOUSEHOLD#household-a',
     'settings-put:HOUSEHOLD#household-a',
   ])

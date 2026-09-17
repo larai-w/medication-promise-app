@@ -2,7 +2,7 @@ import React from 'react'
 import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer'
 import path from 'path'
 import { TIMINGS, timingLabel, type Timing } from '@/lib/constants'
-import type { MedicationRecord } from '@/types'
+import type { DailyCondition, MedicationRecord } from '@/types'
 
 Font.register({
   family: 'NotoSansJP',
@@ -19,7 +19,8 @@ const s = StyleSheet.create({
   altRow: { flexDirection: 'row', backgroundColor: '#f8f8ff' },
   dateCell: { width: '12%', padding: 5, borderRightWidth: 1, borderRightColor: '#ccc', borderBottomWidth: 1, borderBottomColor: '#ccc' },
   timingCell: { flex: 1, padding: 5, borderRightWidth: 1, borderRightColor: '#ccc', borderBottomWidth: 1, borderBottomColor: '#ccc', alignItems: 'center' },
-  notesCell: { width: '22%', padding: 5, borderBottomWidth: 1, borderBottomColor: '#ccc' },
+  conditionCell: { width: '8%', padding: 5, borderRightWidth: 1, borderRightColor: '#ccc', borderBottomWidth: 1, borderBottomColor: '#ccc', alignItems: 'center' },
+  notesCell: { width: '24%', padding: 5, borderBottomWidth: 1, borderBottomColor: '#ccc' },
   headerText: { color: 'white', fontFamily: 'NotoSansJP', fontSize: 8 },
   cellText: { fontFamily: 'NotoSansJP', fontSize: 9 },
   checkText: { fontFamily: 'NotoSansJP', fontSize: 10, color: '#16a34a' },
@@ -31,9 +32,12 @@ interface Props {
   records: MedicationRecord[]
   yearMonth: string // 'YYYY-MM'
   daysInMonth: number
+  // その日の調子（5段階）と「その日のメモ」。WELLNESS# に別レコードで入っている。
+  // 2026-09-17 まで PDF はこれを読んでおらず、画面に書いたメモが月表に出なかった。
+  conditions?: DailyCondition[]
 }
 
-export default function MedPdfDocument({ records, yearMonth, daysInMonth }: Props) {
+export default function MedPdfDocument({ records, yearMonth, daysInMonth, conditions = [] }: Props) {
   const [year, month] = yearMonth.split('-').map(Number)
 
   const byDateTiming = records.reduce<Record<string, Record<Timing, MedicationRecord>>>((acc, r) => {
@@ -42,10 +46,15 @@ export default function MedPdfDocument({ records, yearMonth, daysInMonth }: Prop
     return acc
   }, {})
 
+  const conditionByDate = conditions.reduce<Record<string, DailyCondition>>((acc, c) => {
+    acc[c.date] = c
+    return acc
+  }, {})
+
   const rows = Array.from({ length: daysInMonth }, (_, i) => {
     const day = i + 1
     const dateStr = `${yearMonth}-${String(day).padStart(2, '0')}`
-    return { day, dateStr, data: byDateTiming[dateStr] ?? {} }
+    return { day, dateStr, data: byDateTiming[dateStr] ?? {}, condition: conditionByDate[dateStr] }
   })
 
   return (
@@ -61,11 +70,12 @@ export default function MedPdfDocument({ records, yearMonth, daysInMonth }: Prop
             {TIMINGS.map(t => (
               <View key={t} style={s.timingCell}><Text style={s.headerText}>{timingLabel(t)}</Text></View>
             ))}
+            <View style={s.conditionCell}><Text style={s.headerText}>調子</Text></View>
             <View style={s.notesCell}><Text style={s.headerText}>メモ</Text></View>
           </View>
 
           {/* Data rows */}
-          {rows.map(({ day, dateStr, data }, i) => (
+          {rows.map(({ day, dateStr, data, condition }, i) => (
             <View key={dateStr} style={i % 2 === 1 ? s.altRow : s.row}>
               <View style={s.dateCell}>
                 <Text style={s.cellText}>{month}/{day}</Text>
@@ -82,9 +92,16 @@ export default function MedPdfDocument({ records, yearMonth, daysInMonth }: Prop
                   )}
                 </View>
               ))}
+              <View style={s.conditionCell}>
+                <Text style={s.cellText}>{condition ? `${condition.score}/5` : ' '}</Text>
+              </View>
               <View style={s.notesCell}>
                 <Text style={s.cellText}>
-                  {TIMINGS.flatMap(t => data[t]?.notes ? [`${t}: ${data[t].notes}`] : []).join(' / ')}
+                  {[
+                    // その日のメモを先に出す。服薬そのもの以外のことが書かれるため。
+                    ...(condition?.note ? [condition.note] : []),
+                    ...TIMINGS.flatMap(t => data[t]?.notes ? [`${timingLabel(t)}: ${data[t].notes}`] : []),
+                  ].join(' / ')}
                 </Text>
               </View>
             </View>
