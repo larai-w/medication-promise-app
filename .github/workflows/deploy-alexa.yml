@@ -52,7 +52,8 @@ jobs:
             exit 1
           fi
 
-      # 長期のアクセスキーではなく OIDC で一時認証する（2026-08-20 移行）
+      # Temporary credentials through OIDC rather than a long-lived access key
+      # (moved 2026-08-20)
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:

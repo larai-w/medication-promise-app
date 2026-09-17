@@ -18,8 +18,8 @@ jobs:
     env:
       PROJECTS_TOKEN: ${{ secrets.PROJECTS_TOKEN }}
     steps:
-      # PROJECTS_TOKEN が未設定のときはスキップ(毎回失敗してメールが飛ぶのを防ぐ)。
-      # トークンを設定すれば自動で有効化される。
+      # Skip while PROJECTS_TOKEN is unset, so this does not fail every time and
+      # send mail. It switches on by itself once the token is set.
       - if: env.PROJECTS_TOKEN != ''
         uses: actions/add-to-project@v2
         with:
