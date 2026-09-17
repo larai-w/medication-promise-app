@@ -23,7 +23,7 @@ import {
 import { getMedicationSettings, putMedicationSettings } from './settings-store.ts'
 import { parseMedicationSettingsInput, SettingsValidationError } from './settings.ts'
 import { buildMedicationPromiseExport, CareEventExportError } from './care-event-export.ts'
-import type { MedicationRecord } from '../types/index.ts'
+import type { DailyCondition, MedicationRecord } from '../types/index.ts'
 
 type HouseholdResolver = (request: Request) => Promise<AuthenticatedHousehold>
 
@@ -182,14 +182,17 @@ export function makeRecordItemHandlers({
 export function makePdfHandler({
   resolveHousehold = resolveRequestHousehold,
   listRecords = listRecordsForHousehold,
+  listConditions = listDailyConditionsForHousehold,
   renderPdf,
 }: {
   resolveHousehold?: HouseholdResolver
   listRecords?: typeof listRecordsForHousehold
+  listConditions?: typeof listDailyConditionsForHousehold
   renderPdf: (
     records: MedicationRecord[],
     yearMonth: string,
-    daysInMonth: number
+    daysInMonth: number,
+    conditions: DailyCondition[]
   ) => Promise<Uint8Array>
 }) {
   return async function GET(request: Request) {
@@ -207,7 +210,13 @@ export function makePdfHandler({
       from: `${month}-01`,
       to: `${month}-${String(days).padStart(2, '0')}`,
     })
-    const pdf = await renderPdf(records, month, days)
+    // その日の調子と「その日のメモ」は WELLNESS# に別レコードとして入っている。
+    // 2026-09-17 まで PDF はこれを読んでおらず、書いたメモが月表に出なかった。
+    const conditions = await listConditions(resolved.household, {
+      from: `${month}-01`,
+      to: `${month}-${String(days).padStart(2, '0')}`,
+    })
+    const pdf = await renderPdf(records, month, days, conditions)
     return new Response(Uint8Array.from(pdf).buffer, {
       headers: {
         'Content-Type': 'application/pdf',
