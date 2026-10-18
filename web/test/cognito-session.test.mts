@@ -83,3 +83,59 @@ test('verified Cognito subject is encrypted into an expiring application session
   const tampered = `${parts[0]}.${parts[1]}.${ciphertext.slice(0, 4)}${changedCharacter}${ciphertext.slice(5)}`
   assert.equal(await readWebSessionToken(tampered, env, now + 1_000), null)
 })
+
+// AWS is adding `acr` (string) and `amr` (string array) to Cognito tokens from
+// 2026-11-04. Only `sub` is read, so unknown claims must pass through untouched.
+test('verified claims with additive acr and amr still yield the subject', async () => {
+  const subject = await verifyCognitoAccessToken(
+    'synthetic-access-token',
+    env,
+    {
+      async verify() {
+        return {
+          sub: 'provider-user-a',
+          token_use: 'access',
+          acr: 'synthetic-acr-value',
+          amr: ['pwd', 'otp', 'mfa'],
+        }
+      },
+    }
+  )
+  assert.equal(subject, 'provider-user-a')
+})
+
+test('the real Cognito verifier accepts a signed access token carrying acr and amr', async () => {
+  const { generateKeyPairSync, createSign } = await import('node:crypto')
+  const { CognitoJwtVerifier } = await import('aws-jwt-verify')
+  const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
+  const kid = 'synthetic-key'
+  const issuer = `https://cognito-idp.us-east-1.amazonaws.com/${env.COGNITO_USER_POOL_ID}`
+  const now = Math.floor(Date.now() / 1_000)
+  const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url')
+  const signingInput = `${encode({ alg: 'RS256', kid, typ: 'JWT' })}.${encode({
+    sub: 'provider-user-a',
+    iss: issuer,
+    client_id: env.COGNITO_WEB_CLIENT_ID,
+    token_use: 'access',
+    scope: 'openid',
+    auth_time: now,
+    iat: now,
+    exp: now + 300,
+    jti: 'synthetic-jti',
+    acr: 'synthetic-acr-value',
+    amr: ['pwd', 'otp', 'mfa'],
+  })}`
+  const signature = createSign('RSA-SHA256').update(signingInput).sign(privateKey, 'base64url')
+
+  const verifier = CognitoJwtVerifier.create({
+    userPoolId: env.COGNITO_USER_POOL_ID,
+    tokenUse: 'access',
+    clientId: env.COGNITO_WEB_CLIENT_ID,
+  })
+  verifier.cacheJwks({ keys: [{ ...publicKey.export({ format: 'jwk' }), kty: 'RSA', kid, alg: 'RS256', use: 'sig' }] })
+
+  assert.equal(
+    await verifyCognitoAccessToken(`${signingInput}.${signature}`, env, verifier),
+    'provider-user-a'
+  )
+})
