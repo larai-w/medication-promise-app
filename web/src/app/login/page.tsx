@@ -44,9 +44,9 @@ export default async function LoginPage({
           <AccessCodeLoginForm />
         )}
 
-        <div className="mt-6 flex gap-4 text-xs text-gray-500">
-          <a href="/privacy" className="underline">プライバシー</a>
-          <a href="/terms" className="underline">利用条件</a>
+        <div className="mt-4 flex gap-4 text-sm text-gray-500">
+          <a href="/privacy" className="inline-flex min-h-11 items-center underline">プライバシー</a>
+          <a href="/terms" className="inline-flex min-h-11 items-center underline">利用条件</a>
         </div>
       </div>
     </main>
