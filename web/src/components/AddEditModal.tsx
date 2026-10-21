@@ -79,7 +79,7 @@ export default function AddEditModal({ mode, record, defaultTiming, timingDefaul
           />
         </div>
 
-        {mode === 'edit' && <p id="record-date-help" className="text-xs text-gray-600 dark:text-gray-400">日付は変更できません。別の日の記録は「手動で記録を追加」から追加できます。</p>}
+        {mode === 'edit' && <p id="record-date-help" className="text-sm text-gray-600 dark:text-gray-400">日付は変更できません。別の日の記録は「手動で記録を追加」から追加できます。</p>}
 
         <div>
           <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">服薬区分</label>
@@ -114,7 +114,7 @@ export default function AddEditModal({ mode, record, defaultTiming, timingDefaul
             onChange={e => setTime(e.target.value)}
             className="min-h-11 w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
-          <p id="record-time-help" className="text-xs text-gray-600 dark:text-gray-500 mt-1">{mode === 'add'
+          <p id="record-time-help" className="text-sm text-gray-600 dark:text-gray-500 mt-1">{mode === 'add'
             ? openingSchedule
               ? '区分を選ぶと、画面を開いたときの現在の設定時刻が入ります。過去の予定ではありません。実際の時刻を確認して保存してください。'
               : '予定を確認できません。記録する時刻を入力してください。'
@@ -133,7 +133,7 @@ export default function AddEditModal({ mode, record, defaultTiming, timingDefaul
             maxLength={200}
             className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
-          <p className="text-xs text-gray-600 dark:text-gray-500 mt-1 text-right">{notes.length}/200</p>
+          <p className="text-sm text-gray-600 dark:text-gray-500 mt-1 text-right">{notes.length}/200</p>
         </div>
 
         {saveError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{saveError}</p>}

@@ -80,3 +80,8 @@ body {
 .animate-progress-fill {
   animation: progressFill 0.6s ease-out forwards;
 }
+
+/* sticky ヘッダーの下に、フォーカスした項目が隠れないようにする */
+html {
+  scroll-padding-top: 6rem;
+}

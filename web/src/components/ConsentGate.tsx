@@ -118,7 +118,7 @@ export default function ConsentGate({ children }: { children: React.ReactNode })
           </div>
 
           <div className="mt-8 pt-5 border-t border-gray-200">
-            <p className="text-xs text-gray-500 mb-4">
+            <p className="text-sm text-gray-500 mb-4">
               くわしくは
               <Link href="/privacy" className="text-indigo-700 underline mx-1">
                 プライバシーポリシー
@@ -158,7 +158,7 @@ export default function ConsentGate({ children }: { children: React.ReactNode })
       {decision.kind === 'allow-unverified' && (
         <p
           role="status"
-          className="bg-amber-50 border-b border-amber-200 text-amber-900 text-xs px-4 py-2 text-center"
+          className="bg-amber-50 border-b border-amber-200 text-amber-900 text-sm px-4 py-2 text-center"
         >
           {CONSENT_UNVERIFIED_NOTICE}
         </p>

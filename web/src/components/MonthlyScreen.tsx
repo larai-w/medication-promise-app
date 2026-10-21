@@ -111,17 +111,17 @@ export default function MonthlyScreen() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-gray-50 dark:bg-slate-900 transition-colors">
-      <header className="bg-indigo-700 dark:bg-indigo-900 text-white px-4 py-4 flex items-center justify-between sticky top-0 z-10 shadow-md">
+      <header className="bg-indigo-700 dark:bg-indigo-900 text-white px-4 py-4 flex flex-wrap items-center justify-between gap-y-2 sticky top-0 z-10 shadow-md">
         <h1 className="min-w-0 truncate text-xl font-bold tracking-wide">おくすりの約束</h1>
-        <div className="flex shrink-0 items-center gap-2">
-          <Link href="/" className="inline-flex min-h-11 items-center rounded-full bg-white/20 px-3 text-sm transition-colors hover:bg-white/30" aria-label="メイン画面">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-white/20 px-3 text-sm transition-colors hover:bg-white/30" aria-label="メイン画面">
             メイン画面
           </Link>
-          <Link href="/settings" className="inline-flex min-h-11 items-center rounded-full bg-white/20 px-3 text-sm transition-colors hover:bg-white/30" aria-label="設定">
+          <Link href="/settings" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-white/20 px-3 text-sm transition-colors hover:bg-white/30" aria-label="設定">
             設定
           </Link>
           <form action="/api/access/logout" method="post">
-            <button type="submit" className="min-h-11 px-3 text-xs text-white/80 hover:text-white" aria-label="ログアウト">終了</button>
+            <button type="submit" className="min-h-11 min-w-11 px-3 text-sm text-white/80 hover:text-white" aria-label="ログアウト">終了</button>
           </form>
         </div>
       </header>
@@ -176,7 +176,7 @@ export default function MonthlyScreen() {
           </div>
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" tabIndex={0}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-indigo-700 dark:bg-indigo-900 text-white">
@@ -200,8 +200,8 @@ export default function MonthlyScreen() {
                       >
                         <td className="px-3 py-2.5 whitespace-nowrap">
                           <span className={
-                            isSunday ? 'text-red-500 dark:text-red-400 font-medium' :
-                            isSaturday ? 'text-blue-500 dark:text-blue-400 font-medium' :
+                            isSunday ? 'text-red-700 dark:text-red-400 font-medium' :
+                            isSaturday ? 'text-blue-700 dark:text-blue-400 font-medium' :
                             'text-gray-700 dark:text-gray-300'
                           }>
                             {day}日 ({weekday})
@@ -211,8 +211,8 @@ export default function MonthlyScreen() {
                           <td key={t} className="px-2 py-2.5 text-center">
                             {dayData[t] ? (
                               <span className="inline-flex flex-col items-center leading-tight">
-                                <span className="text-green-600 dark:text-green-400 font-bold text-base">✓</span>
-                                <span className="text-gray-600 dark:text-gray-500 text-xs">{dayData[t].time}</span>
+                                <span className="text-green-700 dark:text-green-400 font-bold text-base">✓</span>
+                                <span className="text-gray-600 dark:text-gray-500 text-sm">{dayData[t].time}</span>
                               </span>
                             ) : (
                               <span className="text-gray-200 dark:text-gray-600">—</span>
@@ -242,10 +242,10 @@ export default function MonthlyScreen() {
             <span>
               完了率: <strong className={
                 records.length / (daysInMonth * 5) >= 0.8
-                  ? 'text-green-600 dark:text-green-400'
+                  ? 'text-green-700 dark:text-green-400'
                   : records.length / (daysInMonth * 5) >= 0.5
-                    ? 'text-yellow-600 dark:text-yellow-400'
-                    : 'text-red-500 dark:text-red-400'
+                    ? 'text-yellow-700 dark:text-yellow-400'
+                    : 'text-red-700 dark:text-red-400'
               }>
                 {Math.round(records.length / (daysInMonth * 5) * 100)}%
               </strong>

@@ -13,7 +13,7 @@ export default function RecentList({ records }: Props) {
       <div className="flex flex-col items-center py-8 text-gray-600 dark:text-gray-500" role="status">
         <span className="text-3xl mb-2" aria-hidden="true">📋</span>
         <p className="text-sm">過去6日間の記録はありません</p>
-        <p className="text-xs mt-1">今日からお薬を記録してみましょう</p>
+        <p className="text-sm mt-1">今日からお薬を記録してみましょう</p>
       </div>
     )
   }
