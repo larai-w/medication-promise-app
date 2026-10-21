@@ -115,14 +115,14 @@ export default function SettingsScreen() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-indigo-700 text-white px-4 py-4 flex items-center justify-between sticky top-0 z-10 shadow-md">
+      <header className="bg-indigo-700 text-white px-4 py-4 flex flex-wrap items-center justify-between gap-y-2 sticky top-0 z-10 shadow-md">
         <h1 className="text-xl font-bold tracking-wide">設定</h1>
-        <div className="flex items-center gap-2">
-          <Link href="/" className="inline-flex min-h-11 items-center rounded-full bg-white/20 px-3 text-sm transition-colors hover:bg-white/30">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-white/20 px-3 text-sm transition-colors hover:bg-white/30">
             メイン画面
           </Link>
           <form action="/api/access/logout" method="post">
-            <button type="submit" className="min-h-11 px-3 text-xs text-white/80 hover:text-white">終了</button>
+            <button type="submit" className="min-h-11 min-w-11 px-3 text-sm text-white/80 hover:text-white">終了</button>
           </form>
         </div>
       </header>
@@ -150,7 +150,7 @@ export default function SettingsScreen() {
                   maxLength={80}
                   className="w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
-                <p className="mt-2 text-xs text-gray-500">
+                <p className="mt-2 text-sm text-gray-500">
                   空欄にするとAlexaは「お薬」とだけ呼びかけます。
                 </p>
               </div>
@@ -178,11 +178,11 @@ export default function SettingsScreen() {
                     setMetricsConsent(event.target.checked)
                     setMetricsConsentState(event.target.checked)
                   }}
-                  className="mt-1 size-5 accent-indigo-700"
+                  className="mt-1 size-5 shrink-0 accent-indigo-700"
                 />
                 <span>
                   <span className="block text-sm font-semibold text-gray-800">任意の利用統計を送信する</span>
-                  <span className="mt-1 block text-xs leading-5 text-gray-500">
+                  <span className="mt-1 block text-sm leading-5 text-gray-500">
                     保存にかかった時間だけを送信します。薬名、記録内容、端末を追跡するIDは送信しません。
                   </span>
                 </span>

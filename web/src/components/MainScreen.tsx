@@ -453,33 +453,33 @@ export default function MainScreen() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors">
-      <header className="bg-indigo-700 dark:bg-indigo-900 text-white px-4 py-4 flex items-center justify-between sticky top-0 z-10 shadow-md">
+      <header className="bg-indigo-700 dark:bg-indigo-900 text-white px-4 py-4 flex flex-wrap items-center justify-between gap-y-2 sticky top-0 z-10 shadow-md">
         <h1 className="text-xl font-bold tracking-wide">おくすりの約束</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={toggleTheme}
-            className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center text-sm bg-white/20 hover:bg-white/30 px-3 rounded-full transition-colors"
             aria-label={`テーマ切替 (現在: ${theme === 'light' ? 'ライト' : theme === 'dark' ? 'ダーク' : 'システム'})`}
           >
             {theme === 'light' ? '☀️' : theme === 'dark' ? '🌙' : '🌓'}
           </button>
-          <Link href="/monthly" className="inline-flex min-h-11 items-center rounded-full bg-white/20 px-3 text-sm transition-colors hover:bg-white/30" aria-label="月間表示">
+          <Link href="/monthly" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-white/20 px-3 text-sm transition-colors hover:bg-white/30" aria-label="月間表示">
             月間表示
           </Link>
-          <Link href="/settings" className="inline-flex min-h-11 items-center rounded-full bg-white/20 px-3 text-sm transition-colors hover:bg-white/30" aria-label="設定">
+          <Link href="/settings" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-white/20 px-3 text-sm transition-colors hover:bg-white/30" aria-label="設定">
             設定
           </Link>
           <button
             type="button"
             onClick={() => void fetchAll()}
             disabled={loading}
-            className="inline-flex min-h-11 items-center rounded-full bg-white/20 px-3 text-sm transition-colors hover:bg-white/30 disabled:opacity-60"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-white/20 px-3 text-sm transition-colors hover:bg-white/30 disabled:opacity-60"
             aria-label="記録を更新"
           >
             {loading ? '読込中' : '更新'}
           </button>
           <form action="/api/access/logout" method="post">
-            <button type="submit" className="min-h-11 px-3 text-xs text-white/80 hover:text-white" aria-label="ログアウト">終了</button>
+            <button type="submit" className="min-h-11 min-w-11 px-3 text-sm text-white/80 hover:text-white" aria-label="ログアウト">終了</button>
           </form>
         </div>
       </header>
@@ -508,7 +508,7 @@ export default function MainScreen() {
 
         <section className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm" aria-labelledby="condition-heading">
           <div className="flex items-center justify-between mb-2">
-            <div><h2 id="condition-heading" className="font-semibold text-gray-800 dark:text-gray-100">{viewingToday ? '今日' : selectedDateLabel}の体調</h2><p className="text-xs text-gray-500 dark:text-gray-400">夜に一度、1〜5で振り返ります</p></div>
+            <div><h2 id="condition-heading" className="font-semibold text-gray-800 dark:text-gray-100">{viewingToday ? '今日' : selectedDateLabel}の体調</h2><p className="text-sm text-gray-500 dark:text-gray-400">夜に一度、1〜5で振り返ります</p></div>
             {condition && <span className="text-sm text-gray-500 dark:text-gray-400">記録済み: {condition.score}</span>}
           </div>
           <div className="grid grid-cols-5 gap-2" role="group" aria-label={`${viewingToday ? '今日' : selectedDateLabel}の体調を1から5で選択`}>
@@ -517,7 +517,7 @@ export default function MainScreen() {
               return <button key={score} type="button" disabled={savingCondition || !conditionReady} onClick={() => void saveCondition(score)} aria-pressed={selected} aria-label={`体調 ${score}: ${['とてもつらい', 'つらい', 'ふつう', '良い', 'とても良い'][score - 1]}`} className={`min-h-11 rounded-xl border-2 text-lg font-semibold transition-colors disabled:opacity-60 ${selected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-indigo-300'}`}>{score}</button>
             })}
           </div>
-          <div className="flex justify-between text-[11px] text-gray-600 dark:text-gray-500 mt-1"><span>つらい</span><span>良い</span></div>
+          <div className="flex justify-between text-sm text-gray-600 dark:text-gray-500 mt-1"><span>つらい</span><span>良い</span></div>
 
           <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
             <label htmlFor="condition-note" className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">その日のメモ（任意）</label>
@@ -536,7 +536,7 @@ export default function MainScreen() {
               className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400"
             />
             <div className="flex items-center justify-between mt-1">
-              <p className="text-xs text-gray-600 dark:text-gray-500">
+              <p className="text-sm text-gray-600 dark:text-gray-500">
                 {!conditionReady ? '体調を読み込んでいます。読み込めない場合は画面を再読み込みしてください' : condition ? `${noteDraft.length}/200` : '先に上の1〜5を選ぶと書けます'}
               </p>
               {condition && noteDraft.trim() !== (condition.note ?? '') && (
@@ -574,8 +574,8 @@ export default function MainScreen() {
             aria-labelledby="record-integrity-heading"
           >
             <h2 id="record-integrity-heading" className="text-sm font-semibold">記録の確認が必要です</h2>
-            <p className="mt-1 text-xs">服薬したかどうかを自動判定せず、記録の状態だけを確認しています。</p>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
+            <p className="mt-1 text-sm">服薬したかどうかを自動判定せず、記録の状態だけを確認しています。</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
               {recordIntegrity.issues.map(issue => (
                 <li key={`${issue.kind}-${issue.recordIds.join('-')}`}>{issue.reason}</li>
               ))}
@@ -590,14 +590,14 @@ export default function MainScreen() {
               <span className="text-xl" aria-hidden="true">🔥</span>
               <div>
                 <span className="font-bold text-amber-700 dark:text-amber-400 text-lg">{streak}</span>
-                <span className="text-amber-600 dark:text-amber-500 text-xs ml-1">日連続</span>
+                <span className="text-amber-700 dark:text-amber-500 text-sm ml-1">日連続</span>
               </div>
             </div>
           )}
           <div className="flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">今日の進捗</span>
-              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{completedCount}/{totalCount}</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">今日の進捗</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{completedCount}/{totalCount}</span>
             </div>
             <div className="w-full h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden" role="progressbar" aria-valuenow={completedCount} aria-valuemin={0} aria-valuemax={totalCount} aria-label="今日の服薬進捗">
               <div
@@ -634,7 +634,7 @@ export default function MainScreen() {
         {/* バッジ一覧 */}
         {insights?.badges && insights.badges.some(b => b.earned) && (
           <section className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">バッジ</h3>
+            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">バッジ</h3>
             <div className="flex flex-wrap gap-2">
               {insights.badges.filter(b => b.earned).map(badge => (
                 <div
@@ -644,7 +644,7 @@ export default function MainScreen() {
                   aria-label={`${badge.label}: ${badge.description}`}
                 >
                   <span aria-hidden="true">{badge.emoji}</span>
-                  <span className="text-xs font-medium text-amber-700 dark:text-amber-300">{badge.label}</span>
+                  <span className="text-sm font-medium text-amber-700 dark:text-amber-300">{badge.label}</span>
                 </div>
               ))}
             </div>
@@ -707,9 +707,9 @@ export default function MainScreen() {
             <RecentList records={recentRecords} />
           )}
         </section>
-        <footer className="pt-4 flex gap-4 text-xs text-gray-500 dark:text-gray-400">
-          <Link href="/privacy" className="underline hover:text-gray-700 dark:hover:text-gray-300">プライバシー</Link>
-          <Link href="/terms" className="underline hover:text-gray-700 dark:hover:text-gray-300">利用条件</Link>
+        <footer className="pt-4 flex gap-2 text-sm text-gray-500 dark:text-gray-400">
+          <Link href="/privacy" className="inline-flex min-h-11 items-center px-2 underline hover:text-gray-700 dark:hover:text-gray-300">プライバシー</Link>
+          <Link href="/terms" className="inline-flex min-h-11 items-center px-2 underline hover:text-gray-700 dark:hover:text-gray-300">利用条件</Link>
         </footer>
       </main>
 

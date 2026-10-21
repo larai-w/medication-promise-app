@@ -42,7 +42,7 @@ export default function MedicationButton({ timing, scheduledTime, record, disabl
           aria-label={`${timingLabel(timing)} 服薬済み ${record.time} 詳細を表示`}
         >
           <div className="flex items-center gap-3">
-            <span className={`text-green-600 dark:text-green-400 text-lg font-bold ${justRecorded ? 'animate-check-pop' : ''}`} aria-hidden="true">
+            <span className={`text-green-700 dark:text-green-400 text-lg font-bold ${justRecorded ? 'animate-check-pop' : ''}`} aria-hidden="true">
               ✓
             </span>
             <span className="font-semibold text-green-800 dark:text-green-300 text-lg">{timingLabel(timing)}</span>
@@ -76,7 +76,7 @@ export default function MedicationButton({ timing, scheduledTime, record, disabl
             <button
               disabled={disabled}
               onClick={() => { onDelete(record.id); setShowActions(false) }}
-              className="flex-1 py-3 text-sm text-red-500 dark:text-red-400 font-medium hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+              className="flex-1 py-3 text-sm text-red-700 dark:text-red-400 font-medium hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
               aria-label={`${timingLabel(timing)} の記録を削除`}
             >
               削除
