@@ -21,7 +21,7 @@ jobs:
       # Skip while PROJECTS_TOKEN is unset, so this does not fail every time and
       # send mail. It switches on by itself once the token is set.
       - if: env.PROJECTS_TOKEN != ''
-        uses: actions/add-to-project@v2
+        uses: actions/add-to-project@5afcf98fcd03f1c2f92c3c83f58ae24323cc57fd # v2
         with:
           project-url: ${{ vars.PROJECT_URL }}
           github-token: ${{ secrets.PROJECTS_TOKEN }}
