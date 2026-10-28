@@ -42,3 +42,6 @@ if [ -n "$STAGED" ]; then
     exit 1
   fi
 fi
+
+# AI エージェント用の指示書（AGENTS.md など）の見張り（2026-10-28・arXiv 2610.09264）
+python3 scripts/check_rule_files.py || exit 1
