@@ -67,6 +67,8 @@ jobs:
           aws lambda update-function-code \
             --function-name "$LAMBDA_NAME" \
             --zip-file fileb://skill.zip \
+            --query '{CodeSha256:CodeSha256,LastUpdateStatus:LastUpdateStatus}' \
+            --output json \
             --no-cli-pager
 
           # The generic Lambda waiter calls GetFunction, which is not part of
