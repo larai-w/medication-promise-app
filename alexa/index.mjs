@@ -172,8 +172,11 @@ export function createHandler({
           recorded = await recordMedicationFn(timing, { minutesAgo })
         }
       } catch (err) {
-        if (err instanceof AlexaHouseholdError) return respond(err.speech)
-        console.error('DynamoDB error:', err)
+        if (err instanceof AlexaHouseholdError) {
+          console.error('[ALEXA HOUSEHOLD FAILED]')
+          return respond(err.speech)
+        }
+        console.error('[MED RECORD FAILED]')
         return respond('申し訳ありません、記録中にエラーが発生しました。もう一度お試しください。')
       }
 
@@ -207,8 +210,11 @@ export function createHandler({
           fetchFn
         )
       } catch (err) {
-        if (err instanceof AlexaHouseholdError) return respond(err.speech)
-        console.error('Reminder error:', err)
+        if (err instanceof AlexaHouseholdError) {
+          console.error('[ALEXA HOUSEHOLD FAILED]')
+          return respond(err.speech)
+        }
+        console.error('[MED REMINDER SETUP FAILED]')
         return respond('申し訳ありません、リマインダーの設定中にエラーが発生しました。もう一度お試しください。')
       }
       if (result.permissionDenied) {
