@@ -3,6 +3,7 @@ import {
   GetCommand,
   PutCommand,
   QueryCommand,
+  type QueryCommandInput,
   TransactWriteCommand,
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb'
@@ -13,7 +14,29 @@ import { captureScheduleSnapshot } from './schedule-snapshot.ts'
 import { activeMembershipCondition } from './membership-write-guard.ts'
 import type { DailyCondition, DynamoRecord, MedicationRecord } from '../types'
 
-type QueryClient = { send(command: unknown): Promise<{ Items?: unknown[] }> }
+type QueryClient = {
+  send(command: unknown): Promise<{
+    Items?: unknown[]
+    LastEvaluatedKey?: Record<string, unknown>
+  }>
+}
+
+async function queryAllItems(input: QueryCommandInput, client: QueryClient): Promise<unknown[]> {
+  const items: unknown[] = []
+  const seenCursors = new Set<string>()
+  let cursor: Record<string, unknown> | undefined
+  do {
+    const result = await client.send(new QueryCommand({ ...input, ExclusiveStartKey: cursor }))
+    items.push(...(result.Items ?? []))
+    cursor = result.LastEvaluatedKey
+    if (cursor) {
+      const fingerprint = JSON.stringify(Object.keys(cursor).sort().map((key) => [key, cursor![key]]))
+      if (seenCursors.has(fingerprint)) throw new Error('Household query returned a repeated pagination cursor')
+      seenCursors.add(fingerprint)
+    }
+  } while (cursor)
+  return items
+}
 type MutationClient = { send(command: unknown): Promise<{ Attributes?: unknown; Item?: unknown }> }
 
 type ConditionItem = {
@@ -73,7 +96,7 @@ export async function listDailyConditionsForHousehold(
   query: { from: string; to: string },
   client: QueryClient = docClient
 ) {
-  const result = await client.send(new QueryCommand({
+  const items = await queryAllItems({
     TableName: TABLE_NAME,
     KeyConditionExpression: 'PK = :pk AND SK BETWEEN :from AND :to',
     ExpressionAttributeValues: {
@@ -82,8 +105,8 @@ export async function listDailyConditionsForHousehold(
       ':to': `WELLNESS#${query.to}~`,
     },
     ScanIndexForward: true,
-  }))
-  return (result.Items as ConditionItem[] ?? []).map(toApiCondition)
+  }, client)
+  return (items as ConditionItem[]).map(toApiCondition)
 }
 
 export async function putDailyConditionForHousehold(
@@ -132,14 +155,14 @@ export async function listRecordsForHousehold(
     throw new Error('date または from/to が必要です')
   }
 
-  const result = await client.send(new QueryCommand({
+  const items = await queryAllItems({
     TableName: TABLE_NAME,
     KeyConditionExpression: keyCondition,
     ExpressionAttributeValues: expressionValues,
     ScanIndexForward: true,
-  }))
+  }, client)
 
-  return (result.Items as DynamoRecord[] ?? []).map(toApiRecord)
+  return (items as DynamoRecord[]).map(toApiRecord)
 }
 
 export async function createRecordForHousehold(
