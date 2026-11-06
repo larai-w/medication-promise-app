@@ -43,6 +43,7 @@ async function listHouseholdKeys(
   client: DeletionClient
 ): Promise<DynamoKey[]> {
   const keys: DynamoKey[] = []
+  const seenCursors = new Set<string>()
   let cursor: Record<string, unknown> | undefined
 
   do {
@@ -63,6 +64,12 @@ async function listHouseholdKeys(
       }
     }
     cursor = result.LastEvaluatedKey
+    if (cursor && Object.keys(cursor).length === 0) cursor = undefined
+    if (cursor) {
+      const fingerprint = JSON.stringify(Object.keys(cursor).sort().map((key) => [key, cursor![key]]))
+      if (seenCursors.has(fingerprint)) throw new Error('Household deletion query returned a repeated pagination cursor')
+      seenCursors.add(fingerprint)
+    }
   } while (cursor)
 
   return keys
