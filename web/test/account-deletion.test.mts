@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { QueryCommand, type QueryCommandInput } from '@aws-sdk/lib-dynamodb'
 import {
   ACCOUNT_DELETION_CONFIRMATION,
   deleteHouseholdAccountData,
@@ -47,6 +48,99 @@ function deletionClient(initialItems: Array<{ PK: string; SK: string }>) {
       return {}
     },
   }
+}
+
+type DeletionQueryPage = {
+  Items?: unknown[]
+  LastEvaluatedKey?: Record<string, unknown>
+}
+
+function scriptedDeletionClient(
+  initialItems: Array<{ PK: string; SK: string }>,
+  queryPage: (input: QueryCommandInput, remaining: Array<{ PK: string; SK: string }>) => DeletionQueryPage
+) {
+  const client = deletionClient(initialItems)
+  return {
+    calls: client.calls,
+    remaining: client.remaining,
+    async send(command: unknown) {
+      if (command instanceof QueryCommand) {
+        client.calls.push({ name: 'QueryCommand', input: command.input as Record<string, unknown> })
+        return queryPage(command.input, client.remaining())
+      }
+      return client.send(command)
+    },
+  }
+}
+
+test('an empty terminal query key finishes each deletion check without another query', async () => {
+  let queries = 0
+  const client = scriptedDeletionClient([], (input) => {
+    queries++
+    assert.ok(queries <= 3, 'synthetic query cap: empty terminal key caused an extra request')
+    assert.equal(input.ExclusiveStartKey, undefined)
+    return { Items: [], LastEvaluatedKey: {} }
+  })
+
+  assert.deepEqual(await deleteHouseholdAccountData(householdContext(), client), { success: true })
+
+  assert.equal(queries, 3)
+  assert.deepEqual(client.calls.map(({ name }) => name), [
+    'UpdateCommand', 'QueryCommand', 'QueryCommand', 'QueryCommand', 'DeleteCommand',
+  ])
+})
+
+test('deletion follows continuation once and stops on the final empty key map', async () => {
+  const first = { PK: 'HOUSEHOLD#household-a', SK: 'RECORD#2035-01-01T08:00:00#synthetic-a' }
+  const second = { PK: 'HOUSEHOLD#household-a', SK: 'SETTINGS#medication' }
+  const other = { PK: 'HOUSEHOLD#household-b', SK: 'RECORD#2035-01-01T08:00:00#synthetic-b' }
+  let queries = 0
+  const client = scriptedDeletionClient([first, second, other], (input, remaining) => {
+    queries++
+    assert.ok(queries <= 5, 'synthetic query cap: terminal page caused an extra request')
+    assert.equal(input.ConsistentRead, true)
+    assert.equal(input.ProjectionExpression, 'PK, SK')
+    assert.deepEqual(input.ExpressionAttributeValues, { ':pk': first.PK })
+    const own = remaining.filter(({ PK }) => PK === first.PK)
+    if (input.ExclusiveStartKey) {
+      assert.deepEqual(input.ExclusiveStartKey, first)
+      return { Items: own.slice(1), LastEvaluatedKey: {} }
+    }
+    return own.length > 0
+      ? { Items: own.slice(0, 1), LastEvaluatedKey: first }
+      : { Items: [], LastEvaluatedKey: {} }
+  })
+
+  assert.deepEqual(await deleteHouseholdAccountData(householdContext(), client), { success: true })
+
+  assert.equal(queries, 5)
+  assert.deepEqual(client.remaining(), [other])
+  assert.equal(client.calls.filter(({ name }) => name === 'BatchWriteCommand').length, 1)
+  assert.equal(client.calls.at(-1)?.name, 'DeleteCommand')
+})
+
+for (const reordered of [false, true]) {
+  test(`repeated empty-page cursor aborts before data or membership deletion${reordered ? ' despite key reordering' : ''}`, async () => {
+    let queries = 0
+    const cursor = { PK: 'HOUSEHOLD#household-a', SK: 'RECORD#synthetic-cursor' }
+    const client = scriptedDeletionClient([], () => {
+      queries++
+      assert.ok(queries <= 2, 'synthetic query cap: cursor cycle was not rejected')
+      return {
+        Items: [],
+        LastEvaluatedKey: reordered && queries === 2
+          ? { SK: cursor.SK, PK: cursor.PK }
+          : { ...cursor },
+      }
+    })
+
+    await assert.rejects(deleteHouseholdAccountData(householdContext(), client), /repeated.*cursor/i)
+
+    assert.equal(queries, 2)
+    assert.deepEqual(client.calls.map(({ name }) => name), ['UpdateCommand', 'QueryCommand', 'QueryCommand'])
+    const lock = client.calls[0].input.ExpressionAttributeValues as Record<string, unknown>
+    assert.equal(lock[':deleting'], 'deleting')
+  })
 }
 
 test('household deletion removes only the resolved partition before its membership', async () => {
