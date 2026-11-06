@@ -67,6 +67,27 @@ for (const kind of ['records','wellness']) {
       assert.equal(firstQuery.ScanIndexForward,true)
     })
   }
+  for (const continued of [false,true]) for (const emptyFinal of [false,true]) {
+    test(`${kind}: empty continuation map ends ${continued ? 'a continued export' : 'the first page'} with ${emptyFinal ? 'no final items' : 'final items'}`, async () => {
+      const cursor = { PK: household.partitionKey, SK: makeRow(1).SK }
+      const finalPage = { Items: emptyFinal ? [] : [makeRow(continued ? 2 : 1)], LastEvaluatedKey: {} }
+      const pages = continued
+        ? [{ Items: [makeRow(1)], LastEvaluatedKey: cursor }, finalPage]
+        : [finalPage]
+      const { calls,handler } = makeHandler(pages)
+      const response = await handler(request())
+      assert.equal(response.status,200)
+      const body: MedicationPromiseExport = await response.json()
+      const exportedValues = kind === 'records'
+        ? body.records.map((item) => item.payload.actualTime)
+        : body.dailyConditions.map((item) => item.date)
+      const expectedRows = continued ? (emptyFinal ? [1] : [1,2]) : (emptyFinal ? [] : [1])
+      assert.deepEqual(exportedValues,expectedRows.map((n) => kind === 'records' ? `08:0${n}` : `2035-01-1${n}`))
+      assert.equal(calls.length,continued ? 2 : 1)
+      assert.equal(calls[0].ExclusiveStartKey,undefined)
+      if (continued) assert.deepEqual(calls[1].ExclusiveStartKey,cursor)
+    })
+  }
   test(`${kind}: a later-page failure aborts export instead of returning partial data`, async () => {
     const { handler } = makeHandler([
       { Items: [makeRow(1)], LastEvaluatedKey: { PK: household.partitionKey, SK: makeRow(1).SK } },

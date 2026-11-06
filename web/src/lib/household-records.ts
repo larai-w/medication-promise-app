@@ -28,7 +28,8 @@ async function queryAllItems(input: QueryCommandInput, client: QueryClient): Pro
   do {
     const result = await client.send(new QueryCommand({ ...input, ExclusiveStartKey: cursor }))
     items.push(...(result.Items ?? []))
-    cursor = result.LastEvaluatedKey
+    const nextCursor = result.LastEvaluatedKey
+    cursor = nextCursor && Object.keys(nextCursor).length > 0 ? nextCursor : undefined
     if (cursor) {
       const fingerprint = JSON.stringify(Object.keys(cursor).sort().map((key) => [key, cursor![key]]))
       if (seenCursors.has(fingerprint)) throw new Error('Household query returned a repeated pagination cursor')
