@@ -46,6 +46,7 @@ export function buildMigratedItem(item, targetPK, targetHouseholdId) {
 
 async function queryAllItems(docClient, tableName, sourcePK) {
   const items = []
+  const seenCursors = new Set()
   let ExclusiveStartKey
 
   do {
@@ -56,7 +57,13 @@ async function queryAllItems(docClient, tableName, sourcePK) {
       ExclusiveStartKey,
     }))
     items.push(...(result.Items ?? []))
-    ExclusiveStartKey = result.LastEvaluatedKey
+    const nextCursor = result.LastEvaluatedKey
+    ExclusiveStartKey = nextCursor && Object.keys(nextCursor).length > 0 ? nextCursor : undefined
+    if (ExclusiveStartKey) {
+      const fingerprint = JSON.stringify(Object.keys(ExclusiveStartKey).sort().map((key) => [key, ExclusiveStartKey[key]]))
+      if (seenCursors.has(fingerprint)) throw new Error('Migration query returned a repeated pagination cursor')
+      seenCursors.add(fingerprint)
+    }
   } while (ExclusiveStartKey)
 
   return items
