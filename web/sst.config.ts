@@ -71,6 +71,8 @@ export default $config({
       'arn:aws:sns:us-east-1:339712703146:veai-ecosystem-alerts'
 
     const web = new sst.aws.Nextjs('Web', {
+      // SST's bundled adapter default is independent of package-lock.json.
+      openNextVersion: '4.1.16',
       path: '.',
       // Keep the production server's reserved concurrency explicit.
       ...(isProduction ? { transform: { server: { concurrency: { reserved: 100 } } } } : {}),
